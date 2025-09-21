@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lock Contract Interactor</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 2rem auto; background-color: #f0f2f5; color: #333; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #1a1a1a; }
+        button { font-size: 1rem; padding: 0.75rem 1.5rem; margin-top: 1rem; cursor: pointer; border-radius: 8px; border: none; background-color: #007bff; color: white; width: 100%; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        #status { margin-top: 1.5rem; padding: 1rem; background: #e9ecef; border-radius: 8px; word-wrap: break-word; line-height: 1.5; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Lock Contract Interface</h1>
+        <button id="connectButton">Connect Wallet</button>
+        <div id="status">Please connect your wallet to interact with the contract.</div>
+        <button id="withdrawButton" class="hidden">Attempt Withdraw</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5/dist/ethers.umd.min.js"></script>
+    <script>
+        // --- ⚙️ CONFIGURATION ---
+        // 1. Paste your deployed contract address here.
+        //    You get this from the `npx hardhat ignition deploy...` command output.
+        const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
+        // 2. This is the corrected and formatted ABI.
+        const contractABI = [
+            {
+                "inputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "_unlockTime",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "payable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "uint256",
+                        "name": "when",
+                        "type": "uint256"
+                    }
+                ],
+                "name": "Withdrawal",
+                "type": "event"
+            },
+            {
+                "inputs": [],
+                "name": "owner",
+                "outputs": [
+                    {
+                        "internalType": "address payable",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "unlockTime",
+                "outputs": [
+                    {
+                        "internalType": "uint256",
+                        "name": "",
+                        "type": "uint256"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "withdraw",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+        // --- END CONFIGURATION ---
+
+        const connectButton = document.getElementById('connectButton');
+        const withdrawButton = document.getElementById('withdrawButton');
+        const statusDiv = document.getElementById('status');
+
+        let provider;
+        let signer;
+        let contract;
+
+        connectButton.addEventListener('click', async () => {
+            if (typeof window.ethereum === 'undefined') {
+                return alert('Please install MetaMask to use this dApp!');
+            }
+            try {
+                // Request account access
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                contract = new ethers.Contract(contractAddress, contractABI, signer);
+                
+                const address = await signer.getAddress();
+                statusDiv.innerHTML = `✅ Connected: ${address}<br><br>`;
+                
+                const unlockTime = await contract.unlockTime();
+                const unlockDate = new Date(unlockTime.toNumber() * 1000);
+                statusDiv.innerHTML += `Funds can be withdrawn after:<br><b>${unlockDate.toLocaleString()}</b>`;
+
+                connectButton.classList.add('hidden');
+                withdrawButton.classList.remove('hidden');
+
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerHTML = "❌ Failed to connect wallet or fetch contract data.";
+            }
+        });
+
+        withdrawButton.addEventListener('click', async () => {
+            if (!contract) return alert('Please connect your wallet first.');
+            
+            statusDiv.innerHTML = '⏳ Sending withdraw transaction... Please confirm in MetaMask.';
+            
+            try {
+                const tx = await contract.withdraw();
+                statusDiv.innerHTML += '<br>Transaction sent. Waiting for confirmation...';
+                await tx.wait(); // Wait for the transaction to be mined
+                statusDiv.innerHTML = '✅ Withdrawal successful!';
+                
+            } catch (error) {
+                console.error(error);
+                // This catches the revert message from the smart contract
+                statusDiv.innerHTML = `❌ Withdrawal failed: ${error.reason || error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
