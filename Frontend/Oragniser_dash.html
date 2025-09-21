@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLAVIS - Event Organizer Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --primary-gradient: linear-gradient(135deg, #BE34D5 0%, #E942A6 100%);
+            --secondary-accent: #34B8D5;
+            --highlight: #D4C4A3;
+            --text-white: #FFFFFF;
+            --card-bg: #1E1E1E;
+            --border-radius: 12px;
+            --sidebar-width: 280px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-white);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: rgba(30, 30, 30, 0.95);
+            padding: 24px 16px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            border-right: 1px solid rgba(212, 196, 163, 0.1);
+            z-index: 100;
+            transition: transform 0.3s ease, width 0.3s ease;
+        }
+        
+        .logo {
+            padding: 16px;
+            margin-bottom: 32px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .logo-icon {
+            display: none;
+            font-size: 28px;
+            margin-right: 0;
+        }
+        
+        .logo-text {
+            transition: opacity 0.3s ease;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .nav-item:hover, .nav-item.active {
+            background: var(--primary-gradient);
+        }
+        
+        .nav-item i {
+            margin-right: 12px;
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .nav-text {
+            transition: opacity 0.3s ease;
+        }
+        
+        /* Mini Sidebar (icon-only) */
+        .sidebar.mini {
+            width: 80px;
+        }
+        
+        .sidebar.mini .logo-text,
+        .sidebar.mini .nav-text {
+            opacity: 0;
+            visibility: hidden;
+            width: 0;
+            height: 0;
+            overflow: hidden;
+        }
+        
+        .sidebar.mini .logo-icon {
+            display: block;
+        }
+        
+        .sidebar.mini .nav-item {
+            justify-content: center;
+            padding: 14px;
+        }
+        
+        .sidebar.mini .nav-item i {
+            margin-right: 0;
+        }
+        
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            padding: 24px;
+            transition: margin-left 0.3s ease;
+        }
+        
+        .main-content.expanded {
+            margin-left: 80px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .wallet-container {
+            display: flex;
+            gap: 16px;
+        }
+        
+        .wallet-item {
+            background: var(--card-bg);
+            padding: 16px 24px;
+            border-radius: var(--border-radius);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            min-width: 180px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        .wallet-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .wallet-title {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--highlight);
+        }
+        
+        .wallet-amount {
+            font-size: 20px;
+            font-weight: bold;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .user-profile {
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .profile-btn {
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 8px 16px;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .profile-btn:hover {
+            box-shadow: 0 0 10px rgba(190, 52, 213, 0.5);
+        }
+        
+        .profile-btn img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-right: 10px;
+            object-fit: cover;
+        }
+        
+        .profile-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--card-bg);
+            width: 180px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            padding: 10px 0;
+            margin-top: 10px;
+            display: none;
+            z-index: 10;
+        }
+        
+        .profile-dropdown.show {
+            display: block;
+        }
+        
+        .dropdown-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .dropdown-item i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Dashboard Cards */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            opacity: 0.9;
+            box-shadow: 0 0 15px rgba(190, 52, 213, 0.5);
+        }
+        
+        .btn-secondary {
+            background-color: transparent;
+            border: 1px solid var(--secondary-accent);
+            color: var(--secondary-accent);
+        }
+        
+        .btn-secondary:hover {
+            background-color: rgba(52, 184, 213, 0.1);
+        }
+        
+        /* Program Cards */
+        .program-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 24px;
+        }
+        
+        .program-card {
+            background-color: var(--card-bg);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+        
+        .program-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .program-image {
+            height: 200px;
+            width: 100%;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7));
+        }
+        
+        .program-content {
+            padding: 16px;
+        }
+        
+        /* Forms - Updated Styling */
+        .form-group {
+            margin-bottom: 24px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
+            color: var(--text-white);
+            font-size: 16px;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--secondary-accent);
+            box-shadow: 0 0 0 2px rgba(52, 184, 213, 0.2);
+        }
+        
+        /* Style for select dropdown */
+        select.form-control {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+            background-repeat: no-repeat;
+            background-position-x: 98%;
+            background-position-y: 50%;
+            padding-right: 40px;
+        }
+        
+        /* Style for date input */
+        input[type="date"].form-control {
+            position: relative;
+        }
+        
+        input[type="date"].form-control::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        
+        input[type="date"].form-control::-webkit-datetime-edit {
+            color: var(--text-white);
+        }
+        
+        /* Style for textarea */
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+        
+        /* Style for options in select dropdown */
+        select.form-control option {
+            background-color: var(--card-bg);
+            color: var(--text-white);
+            padding: 10px;
+        }
+        
+        /* File Input Styling */
+        .file-input-container {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .file-input-button {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 12px 20px;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .file-input-button:hover {
+            opacity: 0.9;
+        }
+        
+        .file-input-button i {
+            margin-right: 8px;
+        }
+        
+        .file-input {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+        
+        .file-name {
+            margin-top: 8px;
+            font-size: 14px;
+            color: var(--highlight);
+        }
+        
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        
+        .data-table th, .data-table td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .data-table th {
+            font-weight: 600;
+            color: var(--highlight);
+        }
+        
+        .view-pdf-btn {
+            background: var(--secondary-accent);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        /* Modals */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .modal {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 600px;
+            padding: 24px;
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.3);
+            transform: translateY(-50px);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--text-white);
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        /* PDF Modal */
+        .pdf-modal {
+            max-width: 800px;
+        }
+        
+        .pdf-viewer {
+            width: 100%;
+            height: 500px;
+            border: none;
+            border-radius: var(--border-radius);
+            background: #f1f1f1;
+        }
+        
+        /* Content Sections */
+        .content-section {
+            display: none;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        /* Toggle Sidebar Button */
+        .toggle-sidebar {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 101;
+            background: var(--primary-gradient);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 80px;
+            }
+            
+            .sidebar .logo-text,
+            .sidebar .nav-text {
+                opacity: 0;
+                visibility: hidden;
+                width: 0;
+                height: 0;
+                overflow: hidden;
+            }
+            
+            .sidebar .logo-icon {
+                display: block;
+            }
+            
+            .sidebar .nav-item {
+                justify-content: center;
+                padding: 14px;
+            }
+            
+            .sidebar .nav-item i {
+                margin-right: 0;
+            }
+            
+            .main-content {
+                margin-left: 80px;
+            }
+            
+            .toggle-sidebar {
+                display: flex;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .wallet-container {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .wallet-item {
+                min-width: 160px;
+                padding: 12px 16px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .program-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+            
+            .wallet-container {
+                flex-direction: row;
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .wallet-item {
+                flex: 1;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                width: 80px;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 16px;
+            }
+            
+            .menu-toggle {
+                display: block;
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                z-index: 101;
+                background: var(--primary-gradient);
+                color: white;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            }
+            
+            .toggle-sidebar {
+                display: none;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .modal {
+                width: 95%;
+                padding: 16px;
+            }
+            
+            .btn {
+                padding: 10px 16px;
+            }
+            
+            .wallet-container {
+                flex-direction: column;
+            }
+            
+            .header {
+                gap: 12px;
+            }
+            
+            .wallet-item {
+                min-width: 100%;
+            }
+        }
+        
+        /* Menu Toggle Button */
+        .menu-toggle {
+            display: none;
+        }
+        
+        /* Event Type Icons */
+        .event-icon {
+            font-size: 60px;
+            opacity: 0.9;
+        }
+        
+        .music { color: #BE34D5; }
+        .tech { color: #34B8D5; }
+        .business { color: #E942A6; }
+        .art { color: #D4C4A3; }
+        .sports { color: #34D5B2; }
+        .food { color: #D5BE34; }
+        
+        /* New Request Highlight */
+        .new-request {
+            animation: highlight 2s ease-in-out;
+            border-left: 4px solid var(--secondary-accent);
+        }
+        
+        @keyframes highlight {
+            0% { background-color: rgba(52, 184, 213, 0.3); }
+            100% { background-color: var(--card-bg); }
+        }
+        
+        /* Tooltip for sidebar icons */
+        .nav-item .tooltip {
+            position: absolute;
+            left: 70px;
+            background: var(--card-bg);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 102;
+            white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .sidebar.mini .nav-item:hover .tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+    </style>
+</head>
+<body>
+    <!-- Menu Toggle Button (for mobile) -->
+    <div class="menu-toggle" id="menuToggle">
+        <i class="fas fa-bars"></i>
+    </div>
+
+    <!-- Toggle Sidebar Button (for desktop) -->
+    <div class="toggle-sidebar" id="toggleSidebar">
+        <i class="fas fa-chevron-right" id="toggleIcon"></i>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo">
+            <i class="fas fa-key logo-icon"></i>
+            <span class="logo-text">CLAVIS</span>
+        </div>
+        <nav>
+            <div class="nav-item active" data-section="dashboard">
+                <i class="fas fa-chart-pie"></i>
+                <span class="nav-text">Dashboard</span>
+                <span class="tooltip">Dashboard</span>
+            </div>
+            <div class="nav-item" data-section="programs">
+                <i class="fas fa-calendar-alt"></i>
+                <span class="nav-text">Programs</span>
+                <span class="tooltip">Programs</span>
+            </div>
+            <div class="nav-item" data-section="requests">
+                <i class="fas fa-paper-plane"></i>
+                <span class="nav-text">Requests</span>
+                <span class="tooltip">Requests</span>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+        <header class="header">
+            <h1>Organizer Dashboard</h1>
+            <div class="wallet-container">
+                <div class="wallet-item" id="tokenWallet">
+                    <div class="wallet-title">Token Wallet</div>
+                    <div class="wallet-amount">12,450</div>
+                </div>
+                <div class="wallet-item" id="fiatWallet">
+                    <div class="wallet-title">Fiat Wallet</div>
+                    <div class="wallet-amount">₹86,450</div>
+                </div>
+            </div>
+            <div class="user-profile">
+                <div class="profile-btn">
+                    <img src="https://ui-avatars.com/api/?name=Event+Organizer&background=BE34D5&color=fff" alt="Profile">
+                    <span>Organizer</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="dropdown-item" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Section -->
+        <section class="content-section active" id="dashboard">
+            <!-- Quick Stats Section -->
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Programs</h2>
+                        <div class="card-stat">6</div>
+                    </div>
+                    <p>Manage your events and programs</p>
+                    <button class="btn btn-primary" id="createProgramBtn" style="margin-top: 16px;">Create New Program</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Token Value</h2>
+                        <div class="card-stat">$1.25</div>
+                    </div>
+                    <p>Current conversion rate</p>
+                    <button class="btn btn-secondary" id="convertTokensBtn" style="margin-top: 16px;">Convert Tokens</button>
+                </div>
+            </div>
+
+            <!-- Programs Section -->
+            <section>
+                <div class="card-header" style="margin-bottom: 24px;">
+                    <h2>Your Programs</h2>
+                </div>
+
+                <div class="program-grid" id="programsContainer">
+                    <!-- Program cards will be dynamically inserted here -->
+                </div>
+            </section>
+        </section>
+
+        <!-- Programs Section -->
+        <section class="content-section" id="programs">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">All Programs</h2>
+                    <button class="btn btn-primary" id="createProgramBtn2">Create New Program</button>
+                </div>
+                <div class="program-grid" id="allProgramsContainer">
+                    <!-- All program cards will be dynamically inserted here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Requests Section -->
+        <section class="content-section" id="requests">
+            <div class="card">
+                <h2 style="margin-bottom: 24px;">Token Conversion Requests</h2>
+                
+                <div class="form-group">
+                    <label class="form-label">Amount to Convert</label>
+                    <input type="number" class="form-control" id="tokenAmount" placeholder="Enter token amount">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Upload Invoice (PDF)</label>
+                    <div class="file-input-container">
+                        <div class="file-input-button">
+                            <i class="fas fa-upload"></i>
+                            Choose File
+                        </div>
+                        <input type="file" class="file-input" id="invoiceFile" accept=".pdf">
+                    </div>
+                    <div class="file-name" id="fileName">No file chosen</div>
+                </div>
+                
+                <button class="btn btn-primary" id="submitRequestBtn">Submit Request</button>
+            </div>
+
+            <div class="card" style="margin-top: 32px;">
+                <h2 style="margin-bottom: 24px;">Request History</h2>
+                
+                <table class="data-table" id="requestsTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Invoice</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Jun 5, 2023</td>
+                            <td>2,500</td>
+                            <td>Processing</td>
+                            <td><button class="view-pdf-btn" data-pdf="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf">View PDF</button></td>
+                        </tr>
+                        <tr>
+                            <td>May 15, 2023</td>
+                            <td>5,000</td>
+                            <td>Completed</td>
+                            <td><button class="view-pdf-btn" data-pdf="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf">View PDF</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Create Program Modal -->
+    <div class="modal-overlay" id="programModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Create New Program</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="programForm">
+                <div class="form-group">
+                    <label class="form-label">Program Name</label>
+                    <input type="text" class="form-control" id="programName" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Program Date</label>
+                    <input type="date" class="form-control" id="programDate" required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Program Type</label>
+                    <select class="form-control" id="programType" required>
+                        <option value="">Select program type</option>
+                        <option value="music">Music</option>
+                        <option value="tech">Technology</option>
+                        <option value="business">Business</option>
+                        <option value="art">Art</option>
+                        <option value="sports">Sports</option>
+                        <option value="food">Food & Drink</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-control" id="programDescription" rows="3"></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Create Program</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal-overlay" id="confirmationModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Request Submitted</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div style="padding: 20px 0;">
+                <p>Your token conversion request has been submitted successfully!</p>
+                <p>You can track the status of your request in the Requests section.</p>
+            </div>
+            <button class="btn btn-primary" id="confirmationOkBtn">OK</button>
+        </div>
+    </div>
+
+    <!-- PDF Viewer Modal -->
+    <div class="modal-overlay" id="pdfModal">
+        <div class="modal pdf-modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Invoice PDF</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <iframe class="pdf-viewer" id="pdfViewer" src=""></iframe>
+        </div>
+    </div>
+
+    <script>
+        // Sample program data
+        const samplePrograms = [
+            {
+                id: 1,
+                name: "Summer Music Festival",
+                date: "2023-06-15",
+                type: "music",
+                description: "15,000+ attendees expected",
+                icon: "fa-music"
+            },
+            {
+                id: 2,
+                name: "Tech Innovation Summit",
+                date: "2023-07-22",
+                type: "tech",
+                description: "2,500+ registered participants",
+                icon: "fa-laptop-code"
+            },
+            {
+                id: 3,
+                name: "Annual Charity Gala",
+                date: "2023-05-05",
+                type: "business",
+                description: "$250,000 raised for charity",
+                icon: "fa-hand-holding-usd"
+            },
+            {
+                id: 4,
+                name: "Art Exhibition",
+                date: "2023-08-10",
+                type: "art",
+                description: "Featuring local artists",
+                icon: "fa-paint-brush"
+            },
+            {
+                id: 5,
+                name: "City Marathon",
+                date: "2023-04-20",
+                type: "sports",
+                description: "5,000 participants",
+                icon: "fa-running"
+            },
+            {
+                id: 6,
+                name: "Food & Wine Festival",
+                date: "2023-09-05",
+                type: "food",
+                description: "Tastings from top chefs",
+                icon: "fa-utensils"
+            }
+        ];
+
+        // Request data
+        let conversionRequests = [
+            {
+                date: "2023-06-05",
+                amount: "2,500",
+                status: "Processing",
+                pdf: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+            },
+            {
+                date: "2023-05-15",
+                amount: "5,000",
+                status: "Completed",
+                pdf: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+            }
+        ];
+
+        // DOM Elements
+        const menuToggle = document.getElementById('menuToggle');
+        const toggleSidebar = document.getElementById('toggleSidebar');
+        const toggleIcon = document.getElementById('toggleIcon');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const profileBtn = document.querySelector('.profile-btn');
+        const profileDropdown = document.getElementById('profileDropdown');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const navItems = document.querySelectorAll('.nav-item');
+        const contentSections = document.querySelectorAll('.content-section');
+        const createProgramBtn = document.getElementById('createProgramBtn');
+        const createProgramBtn2 = document.getElementById('createProgramBtn2');
+        const convertTokensBtn = document.getElementById('convertTokensBtn');
+        const programModal = document.getElementById('programModal');
+        const confirmationModal = document.getElementById('confirmationModal');
+        const pdfModal = document.getElementById('pdfModal');
+        const closeModalButtons = document.querySelectorAll('.close-modal');
+        const programForm = document.getElementById('programForm');
+        const programsContainer = document.getElementById('programsContainer');
+        const allProgramsContainer = document.getElementById('allProgramsContainer');
+        const invoiceFile = document.getElementById('invoiceFile');
+        const fileName = document.getElementById('fileName');
+        const submitRequestBtn = document.getElementById('submitRequestBtn');
+        const confirmationOkBtn = document.getElementById('confirmationOkBtn');
+        const pdfViewer = document.getElementById('pdfViewer');
+        const requestsTable = document.getElementById('requestsTable');
+        const tokenWallet = document.getElementById('tokenWallet');
+        const fiatWallet = document.getElementById('fiatWallet');
+
+        // Toggle sidebar between expanded and mini states
+        toggleSidebar.addEventListener('click', () => {
+            sidebar.classList.toggle('mini');
+            mainContent.classList.toggle('expanded');
+            
+            if (sidebar.classList.contains('mini')) {
+                toggleIcon.classList.remove('fa-chevron-left');
+                toggleIcon.classList.add('fa-chevron-right');
+            } else {
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-left');
+            }
+        });
+
+        // Auto-toggle sidebar based on screen size
+        function checkScreenSize() {
+            if (window.innerWidth <= 1200) {
+                sidebar.classList.add('mini');
+                mainContent.classList.add('expanded');
+                toggleIcon.classList.remove('fa-chevron-left');
+                toggleIcon.classList.add('fa-chevron-right');
+                toggleSidebar.style.display = 'flex';
+            } else {
+                sidebar.classList.remove('mini');
+                mainContent.classList.remove('expanded');
+                toggleIcon.classList.remove('fa-chevron-right');
+                toggleIcon.classList.add('fa-chevron-left');
+                toggleSidebar.style.display = 'flex';
+            }
+            
+            if (window.innerWidth <= 768) {
+                toggleSidebar.style.display = 'none';
+            }
+        }
+
+        // Initial check
+        checkScreenSize();
+        
+        // Listen for window resize events
+        window.addEventListener('resize', checkScreenSize);
+
+        // Event Listeners
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+        });
+
+        profileBtn.addEventListener('click', () => {
+            profileDropdown.classList.toggle('show');
+        });
+
+        logoutBtn.addEventListener('click', () => {
+            alert('Logout functionality would be implemented here.');
+            profileDropdown.classList.remove('show');
+        });
+
+        // Navigation
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const sectionId = item.getAttribute('data-section');
+                
+                // Update active nav item
+                navItems.forEach(navItem => navItem.classList.remove('active'));
+                item.classList.add('active');
+                
+                // Show corresponding section
+                contentSections.forEach(section => {
+                    section.classList.remove('active');
+                    if (section.id === sectionId) {
+                        section.classList.add('active');
+                    }
+                });
+                
+                // Close sidebar on mobile after selection
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('active');
+                }
+            });
+        });
+
+        // Modal Controls
+        const openModal = (modal) => {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        };
+
+        const closeModal = (modal) => {
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        };
+
+        createProgramBtn.addEventListener('click', () => openModal(programModal));
+        createProgramBtn2.addEventListener('click', () => openModal(programModal));
+        convertTokensBtn.addEventListener('click', () => {
+            // Scroll to requests section and activate it
+            navItems.forEach(navItem => navItem.classList.remove('active'));
+            document.querySelector('[data-section="requests"]').classList.add('active');
+            
+            contentSections.forEach(section => {
+                section.classList.remove('active');
+                if (section.id === 'requests') {
+                    section.classList.add('active');
+                }
+            });
+            
+            // Scroll to top of requests section
+            document.getElementById('requests').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        closeModalButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const modal = button.closest('.modal-overlay');
+                closeModal(modal);
+            });
+        });
+
+        // Close modal when clicking outside
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    closeModal(overlay);
+                }
+            });
+        });
+
+        // Program Form Submission
+        programForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('programName').value;
+            const date = document.getElementById('programDate').value;
+            const type = document.getElementById('programType').value;
+            const description = document.getElementById('programDescription').value;
+            
+            // Create new program object
+            const newProgram = {
+                id: samplePrograms.length + 1,
+                name,
+                date,
+                type,
+                description,
+                icon: getIconForType(type)
+            };
+            
+            // Add to sample programs
+            samplePrograms.push(newProgram);
+            
+            // Refresh program displays
+            renderPrograms();
+            
+            // Close modal and reset form
+            closeModal(programModal);
+            programForm.reset();
+            
+            alert('Program created successfully!');
+        });
+
+        // File Input Display
+        invoiceFile.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileName.textContent = e.target.files[0].name;
+            } else {
+                fileName.textContent = 'No file chosen';
+            }
+        });
+
+        // Submit Request
+        submitRequestBtn.addEventListener('click', () => {
+            const tokenAmount = document.getElementById('tokenAmount').value;
+            const file = invoiceFile.files[0];
+            
+            if (!tokenAmount || !file) {
+                alert('Please enter token amount and upload an invoice.');
+                return;
+            }
+            
+            // Create a new request
+            const newRequest = {
+                date: new Date().toLocaleDateString(),
+                amount: parseInt(tokenAmount).toLocaleString(),
+                status: "Processing",
+                pdf: URL.createObjectURL(file)
+            };
+            
+            // Add to requests array
+            conversionRequests.unshift(newRequest);
+            
+            // Update the requests table
+            renderRequests();
+            
+            // Show confirmation
+            openModal(confirmationModal);
+            
+            // Reset form
+            document.getElementById('tokenAmount').value = '';
+            invoiceFile.value = '';
+            fileName.textContent = 'No file chosen';
+        });
+
+        confirmationOkBtn.addEventListener('click', () => {
+            closeModal(confirmationModal);
+        });
+
+        // View PDF
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('view-pdf-btn')) {
+                const pdfUrl = e.target.getAttribute('data-pdf');
+                pdfViewer.src = pdfUrl;
+                openModal(pdfModal);
+            }
+        });
+
+        // Helper Functions
+        function getIconForType(type) {
+            const icons = {
+                music: 'fa-music',
+                tech: 'fa-laptop-code',
+                business: 'fa-hand-holding-usd',
+                art: 'fa-paint-brush',
+                sports: 'fa-running',
+                food: 'fa-utensils'
+            };
+            
+            return icons[type] || 'fa-calendar';
+        }
+        
+        function getIconColorClass(type) {
+            return type; // CSS classes match the type names
+        }
+
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString(undefined, options);
+        }
+
+        function renderPrograms() {
+            // Clear containers
+            programsContainer.innerHTML = '';
+            allProgramsContainer.innerHTML = '';
+            
+            // Render programs in dashboard
+            samplePrograms.slice(0, 6).forEach(program => {
+                programsContainer.appendChild(createProgramCard(program));
+            });
+            
+            // Render all programs in programs section
+            samplePrograms.forEach(program => {
+                allProgramsContainer.appendChild(createProgramCard(program));
+            });
+        }
+
+        function renderRequests() {
+            // Clear the table body
+            const tbody = requestsTable.querySelector('tbody');
+            tbody.innerHTML = '';
+            
+            // Add each request to the table
+            conversionRequests.forEach((request, index) => {
+                const row = document.createElement('tr');
+                
+                // Add highlight animation for new requests
+                if (index === 0) {
+                    row.classList.add('new-request');
+                    setTimeout(() => {
+                        row.classList.remove('new-request');
+                    }, 2000);
+                }
+                
+                row.innerHTML = `
+                    <td>${request.date}</td>
+                    <td>${request.amount}</td>
+                    <td>${request.status}</td>
+                    <td><button class="view-pdf-btn" data-pdf="${request.pdf}">View PDF</button></td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function createProgramCard(program) {
+            const card = document.createElement('div');
+            card.className = 'program-card';
+            
+            const iconColorClass = getIconColorClass(program.type);
+            
+            card.innerHTML = `
+                <div class="program-image">
+                    <i class="event-icon ${iconColorClass} ${program.icon}"></i>
+                </div>
+                <div class="program-content">
+                    <h3>${program.name}</h3>
+                    <p>${formatDate(program.date)}</p>
+                    <p>${program.description}</p>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', () => {
+            renderPrograms();
+            renderRequests();
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.user-profile') && profileDropdown.classList.contains('show')) {
+                    profileDropdown.classList.remove('show');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

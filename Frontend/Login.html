@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLAVIS - Event Management Platform</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-darker: #000000;
+            --primary-gradient-start: #BE34D5;
+            --primary-gradient-end: #E942A6;
+            --secondary-accent: #34B8D5;
+            --highlight: #D4C4A3;
+            --text-light: #FFFFFF;
+            --input-bg: #1E1E1E;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --error: #F44336;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--bg-darker), var(--bg-dark));
+            color: var(--text-light);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(190, 52, 213, 0.2);
+            border: 1px solid rgba(212, 196, 163, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, transparent 20%, rgba(52, 184, 213, 0.1) 25%, transparent 30%);
+            animation: rotate 20s linear infinite;
+            z-index: -1;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            font-size: 32px;
+            background: linear-gradient(to right, var(--primary-gradient-start), var(--primary-gradient-end));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+        }
+        
+        .logo p {
+            color: var(--highlight);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--highlight);
+        }
+        
+        .input-with-icon {
+            position: relative;
+        }
+        
+        .input-with-icon i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--secondary-accent);
+        }
+        
+        .input-with-icon input, .input-with-icon select {
+            width: 100%;
+            padding: 14px 14px 14px 45px;
+            border-radius: 10px;
+            border: 1px solid rgba(52, 184, 213, 0.3);
+            background-color: var(--input-bg);
+            color: var(--text-light);
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .input-with-icon input:focus, .input-with-icon select:focus {
+            outline: none;
+            border-color: var(--secondary-accent);
+            box-shadow: 0 0 10px rgba(52, 184, 213, 0.5);
+        }
+        
+        .user-type {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 10px;
+        }
+        
+        .user-type label {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-radius: 10px;
+            background-color: var(--input-bg);
+            border: 1px solid rgba(52, 184, 213, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .user-type label:hover {
+            border-color: var(--secondary-accent);
+            box-shadow: 0 0 8px rgba(52, 184, 213, 0.3);
+        }
+        
+        .user-type input[type="radio"] {
+            margin-right: 10px;
+            accent-color: var(--primary-gradient-start);
+        }
+        
+        .password-strength {
+            margin-top: 8px;
+            height: 6px;
+            border-radius: 3px;
+            background-color: #555;
+            overflow: hidden;
+        }
+        
+        .strength-meter {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        
+        .strength-text {
+            font-size: 13px;
+            margin-top: 5px;
+            text-align: right;
+        }
+        
+        .password-weak {
+            background-color: var(--error);
+            width: 33%;
+        }
+        
+        .password-medium {
+            background-color: var(--warning);
+            width: 66%;
+        }
+        
+        .password-strong {
+            background-color: var(--success);
+            width: 100%;
+        }
+        
+        .suggest-password {
+            display: block;
+            margin-top: 10px;
+            color: var(--secondary-accent);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            text-align: right;
+            text-decoration: underline;
+        }
+        
+        .metamask-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(to right, var(--primary-gradient-start), var(--primary-gradient-end));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            margin: 20px 0;
+        }
+        
+        .metamask-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(190, 52, 213, 0.4);
+        }
+        
+        .captcha-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            min-height: 78px;
+            padding: 10px;
+            background-color: var(--input-bg);
+            border-radius: 10px;
+            border: 1px solid rgba(52, 184, 213, 0.2);
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: transparent;
+            color: var(--text-light);
+            border: 2px solid var(--secondary-accent);
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        
+        .submit-btn:hover {
+            background: rgba(52, 184, 213, 0.1);
+            box-shadow: 0 0 15px rgba(52, 184, 213, 0.5);
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+            color: var(--highlight);
+            font-size: 14px;
+        }
+        
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(to right, transparent, rgba(212, 196, 163, 0.3), transparent);
+        }
+        
+        .divider span {
+            padding: 0 15px;
+        }
+        
+        .password-info {
+            font-size: 13px;
+            color: var(--highlight);
+            margin-top: 8px;
+            text-align: center;
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 14px;
+            color: var(--highlight);
+        }
+        
+        .footer a {
+            color: var(--secondary-accent);
+            text-decoration: none;
+            transition: color 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+            color: var(--primary-gradient-start);
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: var(--bg-dark);
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 0 30px rgba(190, 52, 213, 0.3);
+            border: 1px solid var(--highlight);
+            position: relative;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            color: var(--highlight);
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            color: var(--secondary-accent);
+        }
+        
+        .modal-title {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            background: linear-gradient(to right, var(--primary-gradient-start), var(--primary-gradient-end));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .modal-submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(to right, var(--primary-gradient-start), var(--primary-gradient-end));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+        
+        .modal-submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(190, 52, 213, 0.4);
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .logo h1 {
+                font-size: 28px;
+            }
+            
+            .input-with-icon input, .input-with-icon select {
+                padding: 12px 12px 12px 40px;
+            }
+            
+            .modal-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>CLAVIS</h1>
+            <p>Your key to seamless event management</p>
+        </div>
+        
+        <form id="signup-form">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" placeholder="Enter your email" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" placeholder="Create a strong password" required>
+                </div>
+                <div class="password-strength">
+                    <div class="strength-meter" id="strength-meter"></div>
+                </div>
+                <div class="strength-text" id="strength-text">Password strength</div>
+                <button type="button" class="suggest-password" id="suggest-password">
+                    Suggest a strong password
+                </button>
+            </div>
+            
+            <div class="form-group">
+                <label>User Type</label>
+                <div class="user-type">
+                    <label>
+                        <input type="radio" name="user-type" value="university" required>
+                        <span>University event</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="user-type" value="ngo">
+                        <span>NGO</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="user-type" value="community">
+                        <span>Basic community</span>
+                    </label>
+                </div>
+            </div>
+            
+            <button type="button" class="metamask-btn" id="metamask-btn">
+                <i class="fab fa-ethereum"></i>
+                Connect with MetaMask
+            </button>
+            
+            <div class="divider">
+                <span>Security Verification</span>
+            </div>
+            
+            <div class="captcha-container">
+                <div class="form-group" style="margin-bottom: 0; width: 100%;">
+                    <label for="captcha-input" id="captcha-question" style="text-align: center; width: 100%; margin-bottom: 10px; font-size: 15px;"></label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-calculator"></i>
+                        <input type="text" id="captcha-input" placeholder="Your Answer" required autocomplete="off">
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="submit-btn">Create Account</button>
+        </form>
+        
+        <div class="footer">
+            Already have an account? <a id="login-link">Log in</a>
+        </div>
+    </div>
+
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-modal">&times;</span>
+            <h2 class="modal-title">Login to CLAVIS</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email Address</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="login-email" placeholder="Enter your email" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="login-password" placeholder="Enter your password" required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="modal-submit-btn">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('signup-form');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const strengthMeter = document.getElementById('strength-meter');
+            const strengthText = document.getElementById('strength-text');
+            const suggestPasswordBtn = document.getElementById('suggest-password');
+            const metamaskBtn = document.getElementById('metamask-btn');
+            const loginLink = document.getElementById('login-link');
+            const loginModal = document.getElementById('login-modal');
+            const closeModal = document.getElementById('close-modal');
+            const loginForm = document.getElementById('login-form');
+            
+            // ADDED: CAPTCHA variables
+            let captchaAnswer = 0;
+            const captchaQuestion = document.getElementById('captcha-question');
+            const captchaInput = document.getElementById('captcha-input');
+            
+            // Check if user is already logged in
+            checkLoginStatus();
+            
+            // ADDED: Generate initial CAPTCHA
+            generateCaptcha();
+            
+            // Check password strength as user types
+            passwordInput.addEventListener('input', checkPasswordStrength);
+            
+            // Suggest a strong password
+            suggestPasswordBtn.addEventListener('click', function() {
+                passwordInput.type = 'text';
+                passwordInput.value = generatePassword();
+                checkPasswordStrength();
+            });
+            
+            // Toggle password visibility
+            passwordInput.addEventListener('focus', function() {
+                if (passwordInput.value === generatePassword()) {
+                    passwordInput.type = 'password';
+                    passwordInput.value = '';
+                }
+            });
+            
+            // Form submission handler
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Validate form
+                if (!validateForm()) {
+                    return;
+                }
+                
+                // Check if CAPTCHA is completed
+                if (!isCaptchaCompleted()) { // MODIFIED: This now validates the math problem
+                    return;
+                }
+                
+                // If everything is valid, show success message and automatically login
+                const email = emailInput.value;
+                alert('Account created successfully!');
+                
+                // Store user data in localStorage to simulate account creation
+                const userData = {
+                    email: email,
+                    password: passwordInput.value,
+                    userType: document.querySelector('input[name="user-type"]:checked').value
+                };
+                
+                localStorage.setItem('clavisUser', JSON.stringify(userData));
+                localStorage.setItem('clavisLoggedIn', 'true');
+                
+                // Update UI to show logged in state
+                updateUIAfterLogin(email);
+            });
+            
+            // Login link handler
+            loginLink.addEventListener('click', function() {
+                loginModal.style.display = 'flex';
+            });
+            
+            // Close modal button
+            closeModal.addEventListener('click', function() {
+                loginModal.style.display = 'none';
+            });
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(e) {
+                if (e.target === loginModal) {
+                    loginModal.style.display = 'none';
+                }
+            });
+            
+            // Login form submission
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                if (!email || !password) {
+                    alert('Please enter both email and password.');
+                    return;
+                }
+                
+                // Check if user exists in localStorage
+                const storedUser = localStorage.getItem('clavisUser');
+                if (storedUser) {
+                    const userData = JSON.parse(storedUser);
+                    if (userData.email === email && userData.password === password) {
+                        // Successful login
+                        localStorage.setItem('clavisLoggedIn', 'true');
+                        alert('Login successful!');
+                        loginModal.style.display = 'none';
+                        loginForm.reset();
+                        
+                        // Update UI to show logged in state
+                        updateUIAfterLogin(email);
+                    } else {
+                        alert('Invalid email or password.');
+                    }
+                } else {
+                    alert('No account found with this email. Please sign up first.');
+                }
+            });
+            
+            // MetaMask connection handler
+            metamaskBtn.addEventListener('click', connectMetaMask);
+            
+            // Check login status function
+            function checkLoginStatus() {
+                const isLoggedIn = localStorage.getItem('clavisLoggedIn') === 'true';
+                if (isLoggedIn) {
+                    const userData = JSON.parse(localStorage.getItem('clavisUser') || '{}');
+                    updateUIAfterLogin(userData.email || 'User');
+                }
+            }
+            
+            // Update UI after login
+            function updateUIAfterLogin(email) {
+                // Hide the form and login link
+                form.style.display = 'none';
+                document.querySelector('.footer').style.display = 'none';
+                
+                // Create welcome message
+                const welcomeMessage = document.createElement('div');
+                welcomeMessage.innerHTML = `
+                    <div class="logo">
+                        <h1>Welcome to CLAVIS</h1>
+                        <p>You are now logged in</p>
+                    </div>
+                    <div style="text-align: center; margin-bottom: 20px;">
+                        <p>Logged in as: ${email}</p>
+                    </div>
+                    <button class="submit-btn" id="logout-btn">Logout</button>
+                `;
+                
+                // Add welcome message to container
+                document.querySelector('.container').appendChild(welcomeMessage);
+                
+                // Add logout functionality
+                document.getElementById('logout-btn').addEventListener('click', function() {
+                    localStorage.removeItem('clavisLoggedIn');
+                    location.reload();
+                });
+            }
+            
+            // Password strength checking function
+            function checkPasswordStrength() {
+                const password = passwordInput.value;
+                let strength = 0;
+                let message = '';
+                
+                if (password.length > 0) {
+                    // Check password length
+                    if (password.length < 6) {
+                        strength = 1;
+                        message = 'Too short';
+                    } else if (password.length < 10) {
+                        strength += 1;
+                    } else {
+                        strength += 2;
+                    }
+                    
+                    // Check for character variety
+                    if (/[A-Z]/.test(password)) strength += 1;
+                    if (/[0-9]/.test(password)) strength += 1;
+                    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+                    
+                    // Determine strength level
+                    if (strength < 3) {
+                        strengthMeter.className = 'strength-meter password-weak';
+                        message = 'Weak password';
+                    } else if (strength < 5) {
+                        strengthMeter.className = 'strength-meter password-medium';
+                        message = 'Medium strength';
+                    } else {
+                        strengthMeter.className = 'strength-meter password-strong';
+                        message = 'Strong password!';
+                    }
+                } else {
+                    strengthMeter.className = 'strength-meter';
+                    message = 'Password strength';
+                }
+                
+                strengthText.textContent = message;
+            }
+            
+            // Password generation function
+            function generatePassword() {
+                const length = 12;
+                const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+                let password = "";
+                
+                // Ensure at least one of each required character type
+                password += getRandomChar("abcdefghijklmnopqrstuvwxyz");
+                password += getRandomChar("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+                password += getRandomChar("0123456789");
+                password += getRandomChar("!@#$%^&*()_+");
+                
+                // Fill the rest randomly
+                for (let i = password.length; i < length; i++) {
+                    const randomIndex = Math.floor(Math.random() * charset.length);
+                    password += charset[randomIndex];
+                }
+                
+                // Shuffle the password
+                return password.split('').sort(() => Math.random() - 0.5).join('');
+            }
+            
+            function getRandomChar(charSet) {
+                const randomIndex = Math.floor(Math.random() * charSet.length);
+                return charSet[randomIndex];
+            }
+            
+            // Email validation function
+            function isValidEmail(email) {
+                const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return re.test(email);
+            }
+            
+            // Form validation function
+            function validateForm() {
+                if (!emailInput.value || !isValidEmail(emailInput.value)) {
+                    alert('Please enter a valid email address.');
+                    return false;
+                }
+                
+                if (!passwordInput.value) {
+                    alert('Please enter a password.');
+                    return false;
+                }
+                
+                const userTypeSelected = document.querySelector('input[name="user-type"]:checked');
+                if (!userTypeSelected) {
+                    alert('Please select a user type.');
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            // ADDED: Simple Math CAPTCHA generation function
+            function generateCaptcha() {
+                const num1 = Math.ceil(Math.random() * 10);
+                const num2 = Math.ceil(Math.random() * 10);
+                captchaAnswer = num1 + num2;
+                captchaQuestion.textContent = `What is ${num1} + ${num2}?`;
+            }
+            
+            // MODIFIED: CAPTCHA validation function
+            function isCaptchaCompleted() {
+                const userAnswer = parseInt(captchaInput.value, 10);
+                if (userAnswer !== captchaAnswer) {
+                    alert('Incorrect security answer. Please try again.');
+                    captchaInput.value = ''; // Clear the input
+                    generateCaptcha(); // Generate a new question
+                    return false;
+                }
+                return true;
+            }
+            
+            // MetaMask connection function
+            async function connectMetaMask() {
+                if (typeof window.ethereum !== 'undefined') {
+                    try {
+                        // Request account access
+                        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        const account = accounts[0];
+                        
+                        // Update button text
+                        metamaskBtn.innerHTML = `<i class="fab fa-ethereum"></i> Connected: ${account.substring(0, 8)}...`;
+                        metamaskBtn.style.background = 'linear-gradient(to right, #34B8D5, #2E8BAF)';
+                        
+                        alert('MetaMask connected successfully!');
+                    } catch (error) {
+                        console.error('User denied account access');
+                        alert('MetaMask connection was denied. Please try again.');
+                    }
+                } else {
+                    alert('MetaMask is not installed. Please install it to use blockchain features.');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
