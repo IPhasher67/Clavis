@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProjectVoucherToken - Full Interface</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .fade-in { animation: fadeIn .3s ease-in-out; }
+    @keyframes fadeIn { from {opacity: 0; transform: translateY(6px)} to {opacity:1; transform: translateY(0)} }
+    input { outline: none; }
+  </style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen">
+  <div class="max-w-6xl mx-auto p-4 md:p-8">
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold">ProjectVoucherToken - Full Interface</h1>
+        <p class="text-gray-400 text-sm">Interact with all public functions of your token contract.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="connectBtn" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-semibold">Connect Wallet</button>
+        <span id="connBadge" class="hidden text-xs bg-emerald-700/30 text-emerald-300 px-2 py-1 rounded">Connected</span>
+      </div>
+    </header>
+
+    <!-- Wallet + Load Contract -->
+    <section class="grid md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-gray-900/60 rounded-xl p-4 space-y-2">
+        <h2 class="font-semibold">Wallet</h2>
+        <div class="text-sm text-gray-400">Address</div>
+        <div id="wAddress" class="mono text-sm break-all">-</div>
+        <div class="text-sm text-gray-400">Chain ID</div>
+        <div id="wChain" class="mono text-sm">-</div>
+        <div class="text-sm text-gray-400">Native Balance</div>
+        <div id="wEth" class="mono text-sm">-</div>
+      </div>
+
+      <div class="bg-gray-900/60 rounded-xl p-4 space-y-3 md:col-span-2">
+        <h2 class="font-semibold">Load Contract</h2>
+        <div class="grid md:grid-cols-4 gap-2">
+          <input id="cAddr" placeholder="Contract address (0x...)" class="md:col-span-3 bg-gray-800 rounded px-3 py-2 mono" />
+          <button id="loadBtn" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg font-semibold">Load</button>
+        </div>
+        <div id="cStatus" class="text-sm text-gray-300"></div>
+      </div>
+    </section>
+
+    <!-- Token Info -->
+    <section id="tokenSec" class="hidden fade-in space-y-6">
+      <div class="grid md:grid-cols-4 gap-4">
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-2">
+          <h3 class="font-semibold">Token</h3>
+          <div class="text-sm text-gray-400">Name / Symbol</div>
+          <div id="tName" class="mono text-sm">-</div>
+          <div class="text-sm text-gray-400">Decimals</div>
+          <div id="tDecimals" class="mono text-sm">-</div>
+          <div class="text-sm text-gray-400">Total Supply</div>
+          <div id="tSupply" class="mono text-sm">-</div>
+          <div class="text-sm text-gray-400">Paused</div>
+          <div id="tPaused" class="mono text-sm">-</div>
+          <div class="text-sm text-gray-400">Owner</div>
+          <div id="tOwner" class="mono text-sm break-all">-</div>
+        </div>
+
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-3">
+          <h3 class="font-semibold">My Balance</h3>
+          <div id="myBal" class="mono text-xl">-</div>
+          <button id="refreshBtn" class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded">Refresh</button>
+        </div>
+
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-3">
+          <h3 class="font-semibold">Approve & Allowance</h3>
+          <input id="apprSpender" placeholder="Spender (0x...)" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <input id="apprAmount" placeholder="Amount" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <div class="flex gap-2">
+            <button id="approveBtn" class="flex-1 bg-sky-600 hover:bg-sky-700 px-3 py-2 rounded">Approve</button>
+            <button id="decApprBtn" class="flex-1 bg-amber-600 hover:bg-amber-700 px-3 py-2 rounded">Decrease</button>
+          </div>
+          <div class="flex gap-2">
+            <input id="allowOwner" placeholder="Allowance Owner (0x...)" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+            <input id="allowSpender" placeholder="Spender (0x...)" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          </div>
+          <button id="allowBtn" class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded">Check Allowance</button>
+          <div id="allowOut" class="text-xs text-gray-400"></div>
+        </div>
+
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-3">
+          <h3 class="font-semibold">Transfer</h3>
+          <input id="trTo" placeholder="To (0x...)" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <input id="trAmt" placeholder="Amount" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <button id="trBtn" class="bg-indigo-600 hover:bg-indigo-700 px-3 py-2 rounded">Send</button>
+          <div id="trOut" class="text-xs text-gray-400"></div>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-3">
+          <h3 class="font-semibold">Transfer From (as Spender)</h3>
+          <input id="tfFrom" placeholder="From (0x...)" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <input id="tfTo" placeholder="To (0x...)" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <input id="tfAmt" placeholder="Amount" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <button id="tfBtn" class="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded">Transfer From</button>
+          <div id="tfOut" class="text-xs text-gray-400"></div>
+        </div>
+
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-3">
+          <h3 class="font-semibold">Owner Actions</h3>
+          <input id="mintTo" placeholder="Mint to (0x...)" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <input id="mintAmt" placeholder="Amount" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <div class="flex gap-2">
+            <button id="mintBtn" class="flex-1 bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded">Mint</button>
+          </div>
+          <div class="flex gap-2">
+            <button id="pauseBtn" class="flex-1 bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded">Pause</button>
+            <button id="unpauseBtn" class="flex-1 bg-green-600 hover:bg-green-700 px-3 py-2 rounded">Unpause</button>
+          </div>
+          <div class="flex gap-2">
+            <input id="newOwner" placeholder="New Owner (0x...)" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+            <button id="ownXferBtn" class="bg-teal-600 hover:bg-teal-700 px-3 py-2 rounded">Transfer Ownership</button>
+          </div>
+          <button id="ownRenounceBtn" class="bg-rose-700 hover:bg-rose-800 px-3 py-2 rounded w-full">Renounce Ownership</button>
+          <div id="ownerOut" class="text-xs text-gray-400"></div>
+        </div>
+
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-3">
+          <h3 class="font-semibold">Redeem / Burn</h3>
+          <input id="rdAmt" placeholder="Amount" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <button id="rdBtn" class="bg-rose-600 hover:bg-rose-700 px-3 py-2 rounded">Redeem</button>
+          <div id="rdOut" class="text-xs text-gray-400"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mt-10 text-center text-xs text-gray-500">ethers v6 + MetaMask • Full ERC20 + Ownable + Pausable interface</footer>
+  </div>
+
+  <script type="module">
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.min.js";
+
+    // Minimal ABI covering all used calls
+    const ABI = [
+      // ERC20 views
+      { "inputs": [], "name": "name", "outputs": [{"internalType":"string","name":"","type":"string"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [], "name": "symbol", "outputs": [{"internalType":"string","name":"","type":"string"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [], "name": "decimals", "outputs": [{"internalType":"uint8","name":"","type":"uint8"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [], "name": "totalSupply", "outputs": [{"internalType":"uint256","name":"","type":"uint256"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [{"internalType":"address","name":"account","type":"address"}], "name": "balanceOf", "outputs": [{"internalType":"uint256","name":"","type":"uint256"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"}], "name": "allowance", "outputs": [{"internalType":"uint256","name":"","type":"uint256"}], "stateMutability": "view", "type": "function" },
+      // ERC20 state-changing
+      { "inputs": [{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}], "name": "transfer", "outputs": [{"internalType":"bool","name":"","type":"bool"}], "stateMutability": "nonpayable", "type": "function" },
+      { "inputs": [{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}], "name": "approve", "outputs": [{"internalType":"bool","name":"","type":"bool"}], "stateMutability": "nonpayable", "type": "function" },
+      { "inputs": [{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}], "name": "transferFrom", "outputs": [{"internalType":"bool","name":"","type":"bool"}], "stateMutability": "nonpayable", "type": "function" },
+      { "inputs": [{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"subtractedValue","type":"uint256"}], "name": "decreaseAllowance", "outputs": [{"internalType":"bool","name":"","type":"bool"}], "stateMutability": "nonpayable", "type": "function" },
+      // Pausable
+      { "inputs": [], "name": "paused", "outputs": [{"internalType":"bool","name":"","type":"bool"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [], "name": "pause", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      { "inputs": [], "name": "unpause", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      // Ownable
+      { "inputs": [], "name": "owner", "outputs": [{"internalType":"address","name":"","type":"address"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [{"internalType":"address","name":"newOwner","type":"address"}], "name": "transferOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      { "inputs": [], "name": "renounceOwnership", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      // Custom
+      { "inputs": [{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}], "name": "mintTo", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      { "inputs": [{"internalType":"uint256","name":"amount","type":"uint256"}], "name": "redeemForExpense", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const S = { provider: null, signer: null, account: null, contract: null, decimals: 18 };
+
+    function nativeSymbol(chainId) {
+      // Map common networks; default to ETH if unknown
+      const map = {
+        1: 'ETH',
+        5: 'ETH',
+        11155111: 'ETH', // Sepolia
+        31337: 'ETH',    // Hardhat localhost
+        1043: 'BDAG',    // BlockDAG Testnet
+      };
+      return map[Number(chainId)] || 'ETH';
+    }
+
+    async function connect() {
+      if (!window.ethereum) return alert('Install MetaMask');
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      S.provider = new ethers.BrowserProvider(window.ethereum);
+      S.signer = await S.provider.getSigner();
+      S.account = await S.signer.getAddress();
+      const [net, bal] = await Promise.all([S.provider.getNetwork(), S.provider.getBalance(S.account)]);
+      $('wAddress').textContent = S.account;
+      $('wChain').textContent = String(net.chainId);
+      const symbol = nativeSymbol(net.chainId);
+      $('wEth').textContent = `${ethers.formatEther(bal)} ${symbol}`;
+      $('connBadge').classList.remove('hidden');
+    }
+
+    async function loadContract() {
+      const addr = $('cAddr').value.trim();
+      if (!ethers.isAddress(addr)) return $('cStatus').textContent = 'Enter a valid contract address.';
+      try {
+        // Ensure there is actually a contract deployed at this address on the current network
+        const code = await (S.provider ?? (S.signer && S.signer.provider)).getCode(addr);
+        if (!code || code === '0x') {
+          $('cStatus').textContent = 'No contract code found at this address on the connected network. Check network and address.';
+          return;
+        }
+
+        S.contract = new ethers.Contract(addr, ABI, S.signer ?? S.provider);
+        // fetch token basics
+        const [name, symbol, decimals, paused] = await Promise.all([
+          S.contract.name(),
+          S.contract.symbol(),
+          S.contract.decimals(),
+          S.contract.paused()
+        ]);
+        S.decimals = Number(decimals);
+        $('tName').textContent = `${name} (${symbol})`;
+        $('tDecimals').textContent = `${decimals}`;
+        $('tPaused').textContent = paused ? 'true' : 'false';
+        await refreshBasics();
+        $('tokenSec').classList.remove('hidden');
+        $('cStatus').textContent = `Loaded contract at ${addr}`;
+      } catch (e) {
+        console.error(e);
+        $('cStatus').textContent = 'Failed to load contract. Ensure MetaMask is on the correct network and the address is a deployed contract.';
+      }
+    }
+
+    async function refreshBasics() {
+      if (!S.contract || !S.account) return;
+      const [supply, bal] = await Promise.all([
+        S.contract.totalSupply(), S.contract.balanceOf(S.account)
+      ]);
+      $('tSupply').textContent = ethers.formatUnits(supply, S.decimals);
+      $('myBal').textContent = ethers.formatUnits(bal, S.decimals);
+    }
+
+    // ERC20 actions
+    async function doTransfer() {
+      try {
+        const to = $('trTo').value.trim();
+        const amt = $('trAmt').value.trim();
+        if (!ethers.isAddress(to)) return $('trOut').textContent = 'Invalid recipient';
+        const v = ethers.parseUnits(amt || '0', S.decimals);
+        const tx = await S.contract.connect(S.signer).transfer(to, v);
+        $('trOut').textContent = 'Sending...';
+        await tx.wait();
+        $('trOut').textContent = 'Sent ✅';
+        await refreshBasics();
+      } catch (e) {
+        console.error(e); $('trOut').textContent = e?.shortMessage || e?.message || 'Transfer failed';
+      }
+    }
+
+    async function doApprove() {
+      try {
+        const sp = $('apprSpender').value.trim();
+        const amt = $('apprAmount').value.trim();
+        if (!ethers.isAddress(sp)) return $('allowOut').textContent = 'Invalid spender';
+        const v = ethers.parseUnits(amt || '0', S.decimals);
+        const tx = await S.contract.connect(S.signer).approve(sp, v);
+        $('allowOut').textContent = 'Approve submitted...';
+        await tx.wait();
+        $('allowOut').textContent = 'Approved ✅';
+      } catch (e) {
+        console.error(e); $('allowOut').textContent = e?.shortMessage || e?.message || 'Approve failed';
+      }
+    }
+
+    async function doDecreaseApprove() {
+      try {
+        const sp = $('apprSpender').value.trim();
+        const amt = $('apprAmount').value.trim();
+        if (!ethers.isAddress(sp)) return $('allowOut').textContent = 'Invalid spender';
+        const v = ethers.parseUnits(amt || '0', S.decimals);
+        const tx = await S.contract.connect(S.signer).decreaseAllowance(sp, v);
+        $('allowOut').textContent = 'Decrease submitted...';
+        await tx.wait();
+        $('allowOut').textContent = 'Allowance decreased ✅';
+      } catch (e) {
+        console.error(e); $('allowOut').textContent = e?.shortMessage || e?.message || 'Decrease failed';
+      }
+    }
+
+    async function doCheckAllowance() {
+      try {
+        const ow = $('allowOwner').value.trim();
+        const sp = $('allowSpender').value.trim();
+        if (!ethers.isAddress(ow) || !ethers.isAddress(sp)) return $('allowOut').textContent = 'Invalid owner/spender';
+        const a = await S.contract.allowance(ow, sp);
+        $('allowOut').textContent = `Allowance: ${ethers.formatUnits(a, S.decimals)}`;
+      } catch (e) {
+        console.error(e); $('allowOut').textContent = 'Check failed';
+      }
+    }
+
+    async function doTransferFrom() {
+      try {
+        const from = $('tfFrom').value.trim();
+        const to = $('tfTo').value.trim();
+        const amt = $('tfAmt').value.trim();
+        if (!ethers.isAddress(from) || !ethers.isAddress(to)) return $('tfOut').textContent = 'Invalid from/to';
+        const v = ethers.parseUnits(amt || '0', S.decimals);
+        const tx = await S.contract.connect(S.signer).transferFrom(from, to, v);
+        $('tfOut').textContent = 'Transferring...';
+        await tx.wait();
+        $('tfOut').textContent = 'transferFrom confirmed ✅';
+        await refreshBasics();
+      } catch (e) {
+        console.error(e); $('tfOut').textContent = e?.shortMessage || e?.message || 'transferFrom failed';
+      }
+    }
+
+    // Owner actions
+    async function doMint() {
+      try {
+        const to = $('mintTo').value.trim();
+        const amt = $('mintAmt').value.trim();
+        if (!ethers.isAddress(to)) return $('ownerOut').textContent = 'Invalid recipient';
+        const v = ethers.parseUnits(amt || '0', S.decimals);
+        const tx = await S.contract.connect(S.signer).mintTo(to, v);
+        $('ownerOut').textContent = 'Minting...';
+        await tx.wait();
+        $('ownerOut').textContent = 'Minted ✅';
+        await refreshBasics();
+      } catch (e) {
+        console.error(e); $('ownerOut').textContent = e?.shortMessage || e?.message || 'Mint failed';
+      }
+    }
+
+    async function doPause() {
+      try {
+        const tx = await S.contract.connect(S.signer).pause();
+        $('ownerOut').textContent = 'Pausing...';
+        await tx.wait();
+        $('ownerOut').textContent = 'Paused ✅';
+        $('tPaused').textContent = 'true';
+      } catch (e) {
+        console.error(e); $('ownerOut').textContent = e?.shortMessage || e?.message || 'Pause failed';
+      }
+    }
+
+    async function doUnpause() {
+      try {
+        const tx = await S.contract.connect(S.signer).unpause();
+        $('ownerOut').textContent = 'Unpausing...';
+        await tx.wait();
+        $('ownerOut').textContent = 'Unpaused ✅';
+        $('tPaused').textContent = 'false';
+      } catch (e) {
+        console.error(e); $('ownerOut').textContent = e?.shortMessage || e?.message || 'Unpause failed';
+      }
+    }
+
+    async function doTransferOwnership() {
+      try {
+        const no = $('newOwner').value.trim();
+        if (!ethers.isAddress(no)) return $('ownerOut').textContent = 'Invalid new owner';
+        const tx = await S.contract.connect(S.signer).transferOwnership(no);
+        $('ownerOut').textContent = 'Transferring ownership...';
+        await tx.wait();
+        $('ownerOut').textContent = 'Ownership transferred ✅';
+        $('tOwner').textContent = await S.contract.owner();
+      } catch (e) {
+        console.error(e); $('ownerOut').textContent = e?.shortMessage || e?.message || 'Transfer ownership failed';
+      }
+    }
+
+    async function doRenounceOwnership() {
+      try {
+        const tx = await S.contract.connect(S.signer).renounceOwnership();
+        $('ownerOut').textContent = 'Renouncing ownership...';
+        await tx.wait();
+        $('ownerOut').textContent = 'Ownership renounced ✅';
+        $('tOwner').textContent = await S.contract.owner();
+      } catch (e) {
+        console.error(e); $('ownerOut').textContent = e?.shortMessage || e?.message || 'Renounce failed';
+      }
+    }
+
+    // Redeem
+    async function doRedeem() {
+      try {
+        const amt = $('rdAmt').value.trim();
+        const v = ethers.parseUnits(amt || '0', S.decimals);
+        const tx = await S.contract.connect(S.signer).redeemForExpense(v);
+        $('rdOut').textContent = 'Redeeming...';
+        await tx.wait();
+        $('rdOut').textContent = 'Redeemed ✅';
+        await refreshBasics();
+      } catch (e) {
+        console.error(e); $('rdOut').textContent = e?.shortMessage || e?.message || 'Redeem failed';
+      }
+    }
+
+    // Events wiring
+    $('connectBtn').addEventListener('click', connect);
+    $('loadBtn').addEventListener('click', loadContract);
+    $('refreshBtn').addEventListener('click', refreshBasics);
+    $('trBtn').addEventListener('click', doTransfer);
+    $('approveBtn').addEventListener('click', doApprove);
+    $('decApprBtn').addEventListener('click', doDecreaseApprove);
+    $('allowBtn').addEventListener('click', doCheckAllowance);
+    $('tfBtn').addEventListener('click', doTransferFrom);
+    $('mintBtn').addEventListener('click', doMint);
+    $('pauseBtn').addEventListener('click', doPause);
+    $('unpauseBtn').addEventListener('click', doUnpause);
+    $('ownXferBtn').addEventListener('click', doTransferOwnership);
+    $('ownRenounceBtn').addEventListener('click', doRenounceOwnership);
+    $('rdBtn').addEventListener('click', doRedeem);
+
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', async (a) => {
+        if (a.length) {
+          await connect();
+          if (S.contract) await refreshBasics();
+        }
+      });
+      window.ethereum.on('chainChanged', async () => {
+        // Refresh wallet info quickly for new network
+        try { await connect(); } catch {}
+        // Reload to fully reset state and provider network caches
+        window.location.reload();
+      });
+    }
+  </script>
+</body>
+</html>

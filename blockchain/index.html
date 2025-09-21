@@ -1,154 +1,295 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lock Contract Interactor</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 2rem auto; background-color: #f0f2f5; color: #333; }
-        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #1a1a1a; }
-        button { font-size: 1rem; padding: 0.75rem 1.5rem; margin-top: 1rem; cursor: pointer; border-radius: 8px; border: none; background-color: #007bff; color: white; width: 100%; transition: background-color 0.2s; }
-        button:hover { background-color: #0056b3; }
-        #status { margin-top: 1.5rem; padding: 1rem; background: #e9ecef; border-radius: 8px; word-wrap: break-word; line-height: 1.5; }
-        .hidden { display: none; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ProjectVoucherToken dApp</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .fade-in { animation: fadeIn .4s ease-in-out; }
+    @keyframes fadeIn { from {opacity:0; transform:translateY(8px)} to {opacity:1; transform:translateY(0)} }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Lock Contract Interface</h1>
-        <button id="connectButton">Connect Wallet</button>
-        <div id="status">Please connect your wallet to interact with the contract.</div>
-        <button id="withdrawButton" class="hidden">Attempt Withdraw</button>
-    </div>
+<body class="bg-gray-950 text-white min-h-screen">
+  <div class="max-w-5xl mx-auto p-4 md:p-8">
+    <header class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold">ProjectVoucherToken dApp</h1>
+        <p class="text-gray-400 text-sm">Connect your wallet, load a deployed token contract, and interact.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="connectButton" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg font-semibold">Connect Wallet</button>
+        <span id="connectedBadge" class="hidden text-xs bg-emerald-700/30 text-emerald-300 px-2 py-1 rounded">Connected</span>
+      </div>
+    </header>
 
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5/dist/ethers.umd.min.js"></script>
-    <script>
-        // --- ⚙️ CONFIGURATION ---
-        // 1. Paste your deployed contract address here.
-        //    You get this from the `npx hardhat ignition deploy...` command output.
-        const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+    <section class="grid md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-gray-900/60 rounded-xl p-4 space-y-2">
+        <h2 class="font-semibold">Wallet</h2>
+        <div class="text-sm text-gray-400">Address</div>
+        <div id="walletAddress" class="mono break-all text-sm">-</div>
+        <div class="text-sm text-gray-400">Network (chainId)</div>
+        <div id="walletChain" class="mono text-sm">-</div>
+        <div class="text-sm text-gray-400">ETH Balance</div>
+        <div id="walletEth" class="mono text-sm">-</div>
+      </div>
 
-        // 2. This is the corrected and formatted ABI.
-        const contractABI = [
-            {
-                "inputs": [
-                    {
-                        "internalType": "uint256",
-                        "name": "_unlockTime",
-                        "type": "uint256"
-                    }
-                ],
-                "stateMutability": "payable",
-                "type": "constructor"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {
-                        "indexed": false,
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "uint256",
-                        "name": "when",
-                        "type": "uint256"
-                    }
-                ],
-                "name": "Withdrawal",
-                "type": "event"
-            },
-            {
-                "inputs": [],
-                "name": "owner",
-                "outputs": [
-                    {
-                        "internalType": "address payable",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "unlockTime",
-                "outputs": [
-                    {
-                        "internalType": "uint256",
-                        "name": "",
-                        "type": "uint256"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "withdraw",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            }
-        ];
-        // --- END CONFIGURATION ---
+      <div class="bg-gray-900/60 rounded-xl p-4 space-y-3 md:col-span-2">
+        <h2 class="font-semibold">Load Contract</h2>
+        <div class="grid md:grid-cols-3 gap-2">
+          <input id="contractAddress" placeholder="Contract address (0x...)" class="col-span-2 bg-gray-800 rounded px-3 py-2 mono" />
+          <button id="loadContract" class="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 rounded-lg font-semibold">Load</button>
+        </div>
+        <p class="text-xs text-gray-400">Tip: Deploy with Hardhat and paste the deployed address here. The ABI is embedded for this contract.</p>
+        <div id="contractStatus" class="text-sm text-gray-300"></div>
+      </div>
+    </section>
 
-        const connectButton = document.getElementById('connectButton');
-        const withdrawButton = document.getElementById('withdrawButton');
-        const statusDiv = document.getElementById('status');
+    <section id="tokenSection" class="hidden fade-in space-y-6">
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-2">
+          <h3 class="font-semibold">Token Info</h3>
+          <div class="text-sm text-gray-400">Name / Symbol</div>
+          <div id="tokenName" class="mono text-sm">-</div>
+          <div class="text-sm text-gray-400">Decimals</div>
+          <div id="tokenDecimals" class="mono text-sm">-</div>
+          <div class="text-sm text-gray-400">Total Supply</div>
+          <div id="totalSupply" class="mono text-sm">-</div>
+          <div class="text-sm text-gray-400">Paused</div>
+          <div id="pausedState" class="mono text-sm">-</div>
+        </div>
 
-        let provider;
-        let signer;
-        let contract;
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-3">
+          <h3 class="font-semibold">My Balance</h3>
+          <div id="myBalance" class="mono text-lg">-</div>
+          <button id="refreshBalances" class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded">Refresh</button>
+        </div>
 
-        connectButton.addEventListener('click', async () => {
-            if (typeof window.ethereum === 'undefined') {
-                return alert('Please install MetaMask to use this dApp!');
-            }
-            try {
-                // Request account access
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                signer = provider.getSigner();
-                contract = new ethers.Contract(contractAddress, contractABI, signer);
-                
-                const address = await signer.getAddress();
-                statusDiv.innerHTML = `✅ Connected: ${address}<br><br>`;
-                
-                const unlockTime = await contract.unlockTime();
-                const unlockDate = new Date(unlockTime.toNumber() * 1000);
-                statusDiv.innerHTML += `Funds can be withdrawn after:<br><b>${unlockDate.toLocaleString()}</b>`;
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-3">
+          <h3 class="font-semibold">Owner Actions</h3>
+          <div class="grid gap-2">
+            <input id="mintToAddress" placeholder="Recipient (0x...)" class="bg-gray-800 rounded px-3 py-2 mono" />
+            <input id="mintAmount" placeholder="Amount (e.g. 1000)" class="bg-gray-800 rounded px-3 py-2 mono" />
+            <button id="mintBtn" class="bg-emerald-600 hover:bg-emerald-700 px-3 py-2 rounded">Mint</button>
+          </div>
+          <div class="flex gap-2">
+            <button id="pauseBtn" class="flex-1 bg-yellow-600 hover:bg-yellow-700 px-3 py-2 rounded">Pause</button>
+            <button id="unpauseBtn" class="flex-1 bg-green-600 hover:bg-green-700 px-3 py-2 rounded">Unpause</button>
+          </div>
+          <div id="ownerStatus" class="text-xs text-gray-400"></div>
+        </div>
+      </div>
 
-                connectButton.classList.add('hidden');
-                withdrawButton.classList.remove('hidden');
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-3">
+          <h3 class="font-semibold">Transfer</h3>
+          <input id="transferTo" placeholder="To (0x...)" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <input id="transferAmount" placeholder="Amount" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <button id="transferBtn" class="bg-indigo-600 hover:bg-indigo-700 px-3 py-2 rounded">Send</button>
+          <div id="transferStatus" class="text-xs text-gray-400"></div>
+        </div>
 
-            } catch (error) {
-                console.error(error);
-                statusDiv.innerHTML = "❌ Failed to connect wallet or fetch contract data.";
-            }
-        });
+        <div class="bg-gray-900/60 rounded-xl p-4 space-y-3">
+          <h3 class="font-semibold">Redeem (Burn)</h3>
+          <input id="redeemAmount" placeholder="Amount" class="bg-gray-800 rounded px-3 py-2 mono w-full" />
+          <button id="redeemBtn" class="bg-rose-600 hover:bg-rose-700 px-3 py-2 rounded">Redeem</button>
+          <div id="redeemStatus" class="text-xs text-gray-400"></div>
+        </div>
+      </div>
+    </section>
 
-        withdrawButton.addEventListener('click', async () => {
-            if (!contract) return alert('Please connect your wallet first.');
-            
-            statusDiv.innerHTML = '⏳ Sending withdraw transaction... Please confirm in MetaMask.';
-            
-            try {
-                const tx = await contract.withdraw();
-                statusDiv.innerHTML += '<br>Transaction sent. Waiting for confirmation...';
-                await tx.wait(); // Wait for the transaction to be mined
-                statusDiv.innerHTML = '✅ Withdrawal successful!';
-                
-            } catch (error) {
-                console.error(error);
-                // This catches the revert message from the smart contract
-                statusDiv.innerHTML = `❌ Withdrawal failed: ${error.reason || error.message}`;
-            }
-        });
-    </script>
+    <footer class="mt-10 text-center text-xs text-gray-500">Built with ethers v6 + MetaMask</footer>
+  </div>
+
+  <script type="module">
+    import { ethers } from "https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.min.js";
+
+    // Minimal ABI for ProjectVoucherToken (ERC20 + Ownable owner-only methods + Pausable)
+    const ABI = [
+      // ERC20 view
+      { "inputs": [], "name": "name", "outputs": [{"internalType":"string","name":"","type":"string"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [], "name": "symbol", "outputs": [{"internalType":"string","name":"","type":"string"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [], "name": "decimals", "outputs": [{"internalType":"uint8","name":"","type":"uint8"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [], "name": "totalSupply", "outputs": [{"internalType":"uint256","name":"","type":"uint256"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [{"internalType":"address","name":"account","type":"address"}], "name": "balanceOf", "outputs": [{"internalType":"uint256","name":"","type":"uint256"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}], "name": "transfer", "outputs": [{"internalType":"bool","name":"","type":"bool"}], "stateMutability": "nonpayable", "type": "function" },
+      // Pausable
+      { "inputs": [], "name": "paused", "outputs": [{"internalType":"bool","name":"","type":"bool"}], "stateMutability": "view", "type": "function" },
+      { "inputs": [], "name": "pause", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      { "inputs": [], "name": "unpause", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      // Ownable-only custom
+      { "inputs": [{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"amount","type":"uint256"}], "name": "mintTo", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      // Custom burn
+      { "inputs": [{"internalType":"uint256","name":"amount","type":"uint256"}], "name": "redeemForExpense", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      // Optional events (not strictly needed for calls)
+      { "anonymous": false, "inputs": [ {"indexed": true, "internalType": "address", "name": "from", "type": "address" }, {"indexed": true, "internalType": "address", "name": "to", "type": "address" }, {"indexed": false, "internalType": "uint256", "name": "value", "type": "uint256" } ], "name": "Transfer", "type": "event" }
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const state = {
+      provider: null,
+      signer: null,
+      account: null,
+      contract: null,
+      decimals: 18,
+    };
+
+    async function connect() {
+      if (!window.ethereum) {
+        alert("MetaMask is not installed.");
+        return;
+      }
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
+      state.provider = new ethers.BrowserProvider(window.ethereum);
+      state.signer = await state.provider.getSigner();
+      state.account = await state.signer.getAddress();
+      const network = await state.provider.getNetwork();
+      const bal = await state.provider.getBalance(state.account);
+      $('walletAddress').textContent = state.account;
+      $('walletChain').textContent = `${network.chainId}`;
+      $('walletEth').textContent = `${ethers.formatEther(bal)} ETH`;
+      $('connectedBadge').classList.remove('hidden');
+    }
+
+    async function loadContract() {
+      const addr = $('contractAddress').value.trim();
+      if (!ethers.isAddress(addr)) {
+        $('contractStatus').textContent = 'Please enter a valid contract address.';
+        return;
+      }
+      try {
+        state.contract = new ethers.Contract(addr, ABI, state.signer ?? state.provider);
+        // fetch token basics
+        const [name, symbol, decimals, paused] = await Promise.all([
+          state.contract.name(),
+          state.contract.symbol(),
+          state.contract.decimals(),
+          state.contract.paused()
+        ]);
+        state.decimals = Number(decimals);
+        $('tokenName').textContent = `${name} (${symbol})`;
+        $('tokenDecimals').textContent = `${decimals}`;
+        $('pausedState').textContent = paused ? 'true' : 'false';
+        await refreshSupplyAndBalance();
+        $('tokenSection').classList.remove('hidden');
+        $('contractStatus').textContent = `Loaded contract at ${addr}`;
+      } catch (e) {
+        console.error(e);
+        $('contractStatus').textContent = 'Failed to load contract. Check address and network.';
+      }
+    }
+
+    async function refreshSupplyAndBalance() {
+      if (!state.contract || !state.account) return;
+      const [supply, bal] = await Promise.all([
+        state.contract.totalSupply(),
+        state.contract.balanceOf(state.account),
+      ]);
+      $('totalSupply').textContent = ethers.formatUnits(supply, state.decimals);
+      $('myBalance').textContent = ethers.formatUnits(bal, state.decimals);
+    }
+
+    async function mint() {
+      try {
+        const to = $('mintToAddress').value.trim();
+        const amt = $('mintAmount').value.trim();
+        if (!ethers.isAddress(to)) return $('ownerStatus').textContent = 'Invalid recipient';
+        const value = ethers.parseUnits(amt || '0', state.decimals);
+        const tx = await state.contract.connect(state.signer).mintTo(to, value);
+        $('ownerStatus').textContent = 'Mint submitted...';
+        await tx.wait();
+        $('ownerStatus').textContent = 'Mint confirmed.';
+        await refreshSupplyAndBalance();
+      } catch (e) {
+        console.error(e);
+        $('ownerStatus').textContent = e?.shortMessage || e?.message || 'Mint failed';
+      }
+    }
+
+    async function pause() {
+      try {
+        const tx = await state.contract.connect(state.signer).pause();
+        $('ownerStatus').textContent = 'Pausing...';
+        await tx.wait();
+        $('ownerStatus').textContent = 'Paused';
+        $('pausedState').textContent = 'true';
+      } catch (e) {
+        console.error(e);
+        $('ownerStatus').textContent = e?.shortMessage || e?.message || 'Pause failed';
+      }
+    }
+
+    async function unpause() {
+      try {
+        const tx = await state.contract.connect(state.signer).unpause();
+        $('ownerStatus').textContent = 'Unpausing...';
+        await tx.wait();
+        $('ownerStatus').textContent = 'Unpaused';
+        $('pausedState').textContent = 'false';
+      } catch (e) {
+        console.error(e);
+        $('ownerStatus').textContent = e?.shortMessage || e?.message || 'Unpause failed';
+      }
+    }
+
+    async function transfer() {
+      try {
+        const to = $('transferTo').value.trim();
+        const amt = $('transferAmount').value.trim();
+        if (!ethers.isAddress(to)) return $('transferStatus').textContent = 'Invalid recipient';
+        const value = ethers.parseUnits(amt || '0', state.decimals);
+        const tx = await state.contract.connect(state.signer).transfer(to, value);
+        $('transferStatus').textContent = 'Sending...';
+        await tx.wait();
+        $('transferStatus').textContent = 'Sent';
+        await refreshSupplyAndBalance();
+      } catch (e) {
+        console.error(e);
+        $('transferStatus').textContent = e?.shortMessage || e?.message || 'Transfer failed';
+      }
+    }
+
+    async function redeem() {
+      try {
+        const amt = $('redeemAmount').value.trim();
+        const value = ethers.parseUnits(amt || '0', state.decimals);
+        const tx = await state.contract.connect(state.signer).redeemForExpense(value);
+        $('redeemStatus').textContent = 'Redeeming...';
+        await tx.wait();
+        $('redeemStatus').textContent = 'Redeemed';
+        await refreshSupplyAndBalance();
+      } catch (e) {
+        console.error(e);
+        $('redeemStatus').textContent = e?.shortMessage || e?.message || 'Redeem failed';
+      }
+    }
+
+    // Event wiring
+    $('connectButton').addEventListener('click', connect);
+    $('loadContract').addEventListener('click', loadContract);
+    $('refreshBalances').addEventListener('click', refreshSupplyAndBalance);
+    $('mintBtn').addEventListener('click', mint);
+    $('pauseBtn').addEventListener('click', pause);
+    $('unpauseBtn').addEventListener('click', unpause);
+    $('transferBtn').addEventListener('click', transfer);
+    $('redeemBtn').addEventListener('click', redeem);
+
+    // Auto-update on account or network change
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', async (accounts) => {
+        if (accounts.length > 0) {
+          await connect();
+          if (state.contract) await refreshSupplyAndBalance();
+        }
+      });
+      window.ethereum.on('chainChanged', () => window.location.reload());
+    }
+  </script>
 </body>
 </html>
+

@@ -1,5 +1,5 @@
 {
-  "name": "block2",
+  "name": "trial",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -13,6 +13,8 @@
     "hardhat": "^2.26.3"
   },
   "dependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^6.1.0"
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@openzeppelin/contracts": "^5.4.0",
+    "dotenv": "^17.2.2"
   }
 }
