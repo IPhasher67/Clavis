@@ -404,6 +404,13 @@
                     <input type="email" id="email" placeholder="Enter your email" required>
                 </div>
             </div>
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="name" placeholder="Enter your full name" required>
+                </div>
+            </div>
             
             <div class="form-group">
                 <label for="password">Password</label>
@@ -494,6 +501,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('signup-form');
             const emailInput = document.getElementById('email');
+            const nameInput = document.getElementById('name');
             const passwordInput = document.getElementById('password');
             const strengthMeter = document.getElementById('strength-meter');
             const strengthText = document.getElementById('strength-text');
@@ -503,6 +511,7 @@
             const loginModal = document.getElementById('login-modal');
             const closeModal = document.getElementById('close-modal');
             const loginForm = document.getElementById('login-form');
+            let connectedAccount = null;
             
             // ADDED: CAPTCHA variables
             let captchaAnswer = 0;
@@ -534,7 +543,7 @@
             });
             
             // Form submission handler
-            form.addEventListener('submit', function(e) {
+            form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 // Validate form
@@ -547,22 +556,31 @@
                     return;
                 }
                 
-                // If everything is valid, show success message and automatically login
-                const email = emailInput.value;
-                alert('Account created successfully!');
-                
-                // Store user data in localStorage to simulate account creation
-                const userData = {
-                    email: email,
-                    password: passwordInput.value,
-                    userType: document.querySelector('input[name="user-type"]:checked').value
-                };
-                
-                localStorage.setItem('clavisUser', JSON.stringify(userData));
-                localStorage.setItem('clavisLoggedIn', 'true');
-                
-                // Update UI to show logged in state
-                updateUIAfterLogin(email);
+                try {
+                    const userTypeValue = document.querySelector('input[name="user-type"]:checked').value;
+                    const resp = await fetch('/api/admin/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: nameInput.value.trim(),
+                            email: emailInput.value.trim(),
+                            password: passwordInput.value,
+                            userType: userTypeValue,
+                            wallet_id: connectedAccount || ''
+                        })
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) {
+                        alert(data.error || 'Registration failed');
+                        return;
+                    }
+                    // Save admin and redirect
+                    localStorage.setItem('admin', JSON.stringify(data.admin));
+                    window.location.href = 'Admin_Dash.html';
+                } catch (err) {
+                    console.error(err);
+                    alert('An unexpected error occurred.');
+                }
             });
             
             // Login link handler
@@ -583,34 +601,30 @@
             });
             
             // Login form submission
-            loginForm.addEventListener('submit', function(e) {
+            loginForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const email = document.getElementById('login-email').value;
                 const password = document.getElementById('login-password').value;
-                
                 if (!email || !password) {
                     alert('Please enter both email and password.');
                     return;
                 }
-                
-                // Check if user exists in localStorage
-                const storedUser = localStorage.getItem('clavisUser');
-                if (storedUser) {
-                    const userData = JSON.parse(storedUser);
-                    if (userData.email === email && userData.password === password) {
-                        // Successful login
-                        localStorage.setItem('clavisLoggedIn', 'true');
-                        alert('Login successful!');
-                        loginModal.style.display = 'none';
-                        loginForm.reset();
-                        
-                        // Update UI to show logged in state
-                        updateUIAfterLogin(email);
-                    } else {
-                        alert('Invalid email or password.');
+                try {
+                    const resp = await fetch('/api/admin/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password })
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) {
+                        alert(data.error || 'Login failed');
+                        return;
                     }
-                } else {
-                    alert('No account found with this email. Please sign up first.');
+                    localStorage.setItem('admin', JSON.stringify(data.admin));
+                    window.location.href = 'Admin_Dash.html';
+                } catch (err) {
+                    console.error(err);
+                    alert('An unexpected error occurred.');
                 }
             });
             
@@ -619,15 +633,15 @@
             
             // Check login status function
             function checkLoginStatus() {
-                const isLoggedIn = localStorage.getItem('clavisLoggedIn') === 'true';
+                const isLoggedIn = localStorage.getItem('admin') !== null;
                 if (isLoggedIn) {
-                    const userData = JSON.parse(localStorage.getItem('clavisUser') || '{}');
-                    updateUIAfterLogin(userData.email || 'User');
+                    const adminData = JSON.parse(localStorage.getItem('admin'));
+                    updateUIAfterLogin(adminData.name || 'Admin');
                 }
             }
             
             // Update UI after login
-            function updateUIAfterLogin(email) {
+            function updateUIAfterLogin(name) {
                 // Hide the form and login link
                 form.style.display = 'none';
                 document.querySelector('.footer').style.display = 'none';
@@ -640,7 +654,7 @@
                         <p>You are now logged in</p>
                     </div>
                     <div style="text-align: center; margin-bottom: 20px;">
-                        <p>Logged in as: ${email}</p>
+                        <p>Logged in as: ${name}</p>
                     </div>
                     <button class="submit-btn" id="logout-btn">Logout</button>
                 `;
@@ -650,7 +664,7 @@
                 
                 // Add logout functionality
                 document.getElementById('logout-btn').addEventListener('click', function() {
-                    localStorage.removeItem('clavisLoggedIn');
+                    localStorage.removeItem('admin');
                     location.reload();
                 });
             }
@@ -777,6 +791,7 @@
                         // Request account access
                         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                         const account = accounts[0];
+                        connectedAccount = account;
                         
                         // Update button text
                         metamaskBtn.innerHTML = `<i class="fab fa-ethereum"></i> Connected: ${account.substring(0, 8)}...`;

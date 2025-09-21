@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GameCon - Event Dashboard</title>
+    <title>Event - CLAVIS</title>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
@@ -141,19 +142,19 @@
             text-align: center;
         }
 
-        .profile-dropdown .logout-btn {
+        .profile-dropdown .dropdown-btn {
             width: 100%;
             padding: 12px;
-            background: var(--danger);
-            color: white;
+            background: transparent;
+            color: var(--text);
             border: none;
             cursor: pointer;
             font-family: var(--main-font);
             transition: var(--transition);
         }
 
-        .profile-dropdown .logout-btn:hover {
-            background: #d50000;
+        .profile-dropdown .dropdown-btn:hover {
+            background: #2a2a2a;
         }
 
         .profile-container:hover .profile-dropdown {
@@ -730,17 +731,20 @@
             <div class="event-logo">
                 <i class="fas fa-gamepad"></i>
             </div>
-            <h1 class="pixel-text">GameCon 2023</h1>
+            <h1 class="pixel-text" id="eventTitle">Loading event…</h1>
         </div>
         <div class="profile-container">
             <div class="profile-icon">
                 <i class="fas fa-user"></i>
             </div>
-            <div class="profile-dropdown">
+            <div class="profile-dropdown" id="profileDropdown">
                 <div class="user-info">
-                    <p>Logged in as: <strong>VIT_Gamer</strong></p>
+                    <p id="loggedInAs">Not logged in</p>
                 </div>
-                <button class="logout-btn">Logout <i class="fas fa-sign-out-alt"></i></button>
+                <button class="dropdown-btn" id="signupOrganizerBtn"><i class="fas fa-user-tie"></i> Signup as Organizer</button>
+                <button class="dropdown-btn" id="signupUserBtn"><i class="fas fa-user-plus"></i> Signup as User</button>
+                <button class="dropdown-btn" id="viewDashboardBtn" style="display:none;"><i class="fas fa-gauge"></i> View Dashboard</button>
+                <button class="dropdown-btn" id="logoutBtn" style="display:none;"><i class="fas fa-sign-out-alt"></i> Logout</button>
             </div>
         </div>
     </header>
@@ -1188,6 +1192,111 @@
     </div>
 
     <script>
+        // Load event by query params and set header/title
+        document.addEventListener('DOMContentLoaded', async () => {
+            const params = new URLSearchParams(window.location.search);
+            const adminId = params.get('admin_id');
+            const eventId = params.get('event_id');
+            const titleEl = document.getElementById('eventTitle');
+            const dropdown = document.getElementById('profileDropdown');
+            const loggedInAs = document.getElementById('loggedInAs');
+            const signupOrganizerBtn = document.getElementById('signupOrganizerBtn');
+            const signupUserBtn = document.getElementById('signupUserBtn');
+            const viewDashboardBtn = document.getElementById('viewDashboardBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            function showError(msg) {
+                titleEl.textContent = 'Event not available';
+                const banner = document.createElement('div');
+                banner.style.position = 'fixed';
+                banner.style.top = '10px';
+                banner.style.left = '50%';
+                banner.style.transform = 'translateX(-50%)';
+                banner.style.background = '#7f1d1d';
+                banner.style.border = '1px solid #ef4444';
+                banner.style.color = '#fff';
+                banner.style.padding = '10px 14px';
+                banner.style.borderRadius = '8px';
+                banner.style.zIndex = '10000';
+                banner.textContent = msg || 'Unable to load event.';
+                document.body.appendChild(banner);
+                setTimeout(() => banner.remove(), 6000);
+            }
+
+            if (!adminId || !eventId) {
+                showError('Missing admin_id or event_id in the URL.');
+                return;
+            }
+
+            try {
+                const resp = await fetch(`/api/events/${encodeURIComponent(eventId)}`);
+                const data = await resp.json();
+                if (!resp.ok || !data.event) {
+                    showError(data.error || 'Event not found');
+                    return;
+                }
+                const ev = data.event;
+                if (ev.admin_id !== adminId) {
+                    showError('This event does not belong to the provided admin.');
+                    return;
+                }
+                document.title = `${ev.name} — CLAVIS`;
+                titleEl.textContent = ev.name;
+
+                // Initialize profile dropdown state (organizer or user)
+                const orgRaw = localStorage.getItem('organizer');
+                const userRaw = localStorage.getItem('eventUser');
+                let identity = null; let role = '';
+                if (orgRaw) {
+                    try {
+                        const org = JSON.parse(orgRaw);
+                        if (org && org.event_id === eventId) { identity = org; role = 'organizer'; }
+                    } catch {}
+                }
+                if (!identity && userRaw) {
+                    try {
+                        const usr = JSON.parse(userRaw);
+                        if (usr && usr.event_id === eventId) { identity = usr; role = 'user'; }
+                    } catch {}
+                }
+
+                if (identity) {
+                    loggedInAs.innerHTML = `Logged in as: <strong>${identity.name || identity.email}</strong>${role ? ` (${role})` : ''}`;
+                    viewDashboardBtn.style.display = 'block';
+                    logoutBtn.style.display = 'block';
+                    signupOrganizerBtn.style.display = 'none';
+                    signupUserBtn.style.display = 'none';
+                } else {
+                    loggedInAs.textContent = 'Not logged in';
+                    viewDashboardBtn.style.display = 'none';
+                    logoutBtn.style.display = 'none';
+                    signupOrganizerBtn.style.display = 'block';
+                    signupUserBtn.style.display = 'block';
+                }
+
+                // Wire dropdown actions
+                function withQuery(url) {
+                    const q = new URLSearchParams({ admin_id: adminId, event_id: eventId }).toString();
+                    return `${url}?${q}`;
+                }
+                signupOrganizerBtn.onclick = () => { window.location.href = withQuery('OrgLogin.html'); };
+                signupUserBtn.onclick = () => { window.location.href = withQuery('UserLogin.html'); };
+                viewDashboardBtn.onclick = () => {
+                    const q = `?admin_id=${encodeURIComponent(adminId)}&event_id=${encodeURIComponent(eventId)}`;
+                    if (role === 'organizer') window.location.href = 'Oragniser_dash.html' + q;
+                    else window.location.href = 'User_Dashboard.html' + q;
+                };
+                logoutBtn.onclick = () => {
+                    localStorage.removeItem('organizer');
+                    localStorage.removeItem('eventUser');
+                    window.location.reload();
+                };
+            } catch (e) {
+                console.error(e);
+                showError('Unexpected error loading event.');
+            }
+        });
+
         // Function to open payment modal
         function openModal(eventName, price) {
             const modal = document.getElementById('paymentModal');

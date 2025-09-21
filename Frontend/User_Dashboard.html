@@ -1955,5 +1955,49 @@
         // Initialize the page
         init();
     </script>
+
+    <script>
+      // Ensure dashboard loads with correct user and event context
+      (function() {
+        const params = new URLSearchParams(window.location.search);
+        const adminId = params.get('admin_id');
+        const eventId = params.get('event_id');
+
+        function backToEvent(msg) {
+          if (msg) console.warn(msg);
+          if (adminId && eventId) {
+            window.location.href = `Event_Page.html?admin_id=${encodeURIComponent(adminId)}&event_id=${encodeURIComponent(eventId)}`;
+          } else {
+            window.location.href = 'Event_Page.html';
+          }
+        }
+
+        const raw = localStorage.getItem('eventUser');
+        if (!raw) return backToEvent('No user session');
+        let user = null;
+        try { user = JSON.parse(raw); } catch { return backToEvent('Corrupt user session'); }
+        if (!user || (eventId && user.event_id && user.event_id !== eventId)) return backToEvent('User not scoped to this event');
+
+        // Set header name and avatar initials
+        const name = user.name || user.email || 'User';
+        const initials = name.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase();
+        const welcomeH1 = document.querySelector('.welcome h1');
+        if (welcomeH1) welcomeH1.textContent = `Welcome back, ${name}`;
+        const nameEl = document.querySelector('.user-info .user-name');
+        if (nameEl) nameEl.textContent = name;
+        const avatarEl = document.querySelector('.user-avatar');
+        if (avatarEl) avatarEl.textContent = initials;
+
+        // Fetch event and set title subtitle
+        if (eventId) {
+          fetch(`/api/events/${encodeURIComponent(eventId)}`).then(r => r.json()).then(d => {
+            if (d && d.event) {
+              document.title = `${d.event.name} — User Dashboard`;
+            }
+          }).catch(console.warn);
+        }
+
+      })();
+    </script>
 </body>
 </html>

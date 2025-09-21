@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLAVIS - Organizer Signup / Login</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root{--bg-dark:#121212;--bg-darker:#000;--primary:#7e57c2;--accent:#34B8D5;--text:#fff;--input:#1E1E1E;--warn:#FF9800;--err:#F44336}
+    body{background:linear-gradient(135deg,var(--bg-darker),var(--bg-dark));color:var(--text);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
+    .container{width:100%;max-width:450px;background:rgba(30,30,30,.85);backdrop-filter:blur(10px);border-radius:16px;padding:30px;box-shadow:0 0 30px rgba(126,87,194,.25);border:1px solid rgba(255,255,255,.08);position:relative}
+    .logo{text-align:center;margin-bottom:24px}
+    .logo h1{font-size:28px;color:#fff}
+    .form-group{margin-bottom:16px}
+    label{display:block;margin-bottom:8px;color:#ddd;font-size:14px}
+    .input-with-icon{position:relative}
+    .input-with-icon i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--accent)}
+    .input-with-icon input{width:100%;padding:12px 12px 12px 40px;border-radius:10px;border:1px solid rgba(255,255,255,.12);background:var(--input);color:#fff}
+    .btn{width:100%;padding:12px;border-radius:10px;border:1px solid var(--accent);background:transparent;color:#fff;font-weight:600;cursor:pointer}
+    .btn:hover{background:rgba(52,184,213,.1)}
+    .footer{text-align:center;margin-top:14px;color:#bbb}
+    .footer a{color:var(--accent);cursor:pointer}
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center}
+    .modal-content{background:#1a1a1a;padding:24px;border-radius:14px;max-width:400px;width:92%}
+    .close-btn{float:right;cursor:pointer;color:#aaa}
+  </style>
+  <script>
+    function backToEvent(){
+      const p=new URLSearchParams(window.location.search);
+      const adminId=p.get('admin_id');
+      const eventId=p.get('event_id');
+      if(adminId&&eventId){window.location.href=`Event_Page.html?admin_id=${encodeURIComponent(adminId)}&event_id=${encodeURIComponent(eventId)}`}
+      else {window.location.href='Event_Page.html'}
+    }
+    function getEventIdFromQuery(){return new URLSearchParams(window.location.search).get('event_id')||''}
+    function getAdminIdFromQuery(){return new URLSearchParams(window.location.search).get('admin_id')||''}
+    document.addEventListener('DOMContentLoaded',()=>{
+      const eventInput=document.getElementById('eventId');
+      const qEventId=getEventIdFromQuery();
+      if(qEventId){eventInput.value=qEventId;eventInput.readOnly=true}
+
+      document.getElementById('signup-form').addEventListener('submit',async(e)=>{
+        e.preventDefault();
+        const wallet_id=document.getElementById('wallet').value.trim();
+        const name=document.getElementById('name').value.trim();
+        const email=document.getElementById('email').value.trim();
+        const password=document.getElementById('password').value;
+        const eventId=eventInput.value.trim();
+        if(!wallet_id||!name||!email||!password||!eventId){alert('Please fill all fields.');return}
+        try{
+          const resp=await fetch('/api/organizers/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet_id,name,email,password,eventId})});
+          const data=await resp.json();
+          if(!resp.ok){alert(data.error||'Registration failed');return}
+          localStorage.setItem('organizer',JSON.stringify(data.organizer));
+          backToEvent();
+        }catch(err){console.error(err);alert('Unexpected error')}
+      });
+
+      document.getElementById('login-link').addEventListener('click',()=>{document.getElementById('login-modal').style.display='flex'});
+      document.getElementById('close-modal').addEventListener('click',()=>{document.getElementById('login-modal').style.display='none'});
+      window.addEventListener('click',(e)=>{const m=document.getElementById('login-modal');if(e.target===m)m.style.display='none'});
+
+      document.getElementById('login-form').addEventListener('submit',async(e)=>{
+        e.preventDefault();
+        const email=document.getElementById('login-email').value.trim();
+        const password=document.getElementById('login-password').value;
+        const eventId=document.getElementById('login-eventId').value.trim()||getEventIdFromQuery();
+        if(!email||!password||!eventId){alert('Please fill all fields.');return}
+        try{
+          const resp=await fetch('/api/organizers/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,eventId})});
+          const data=await resp.json();
+          if(!resp.ok){alert(data.error||'Login failed');return}
+          localStorage.setItem('organizer',JSON.stringify(data.organizer));
+          backToEvent();
+        }catch(err){console.error(err);alert('Unexpected error')}
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <h1>Organizer Access</h1>
+    </div>
+    <form id="signup-form">
+      <div class="form-group">
+        <label for="wallet">Wallet ID</label>
+        <div class="input-with-icon"><i class="fas fa-wallet"></i><input id="wallet" placeholder="Your wallet address"></div>
+      </div>
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <div class="input-with-icon"><i class="fas fa-user-tie"></i><input id="name" placeholder="Enter your full name"></div>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <div class="input-with-icon"><i class="fas fa-envelope"></i><input id="email" type="email" placeholder="Enter your email"></div>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-with-icon"><i class="fas fa-lock"></i><input id="password" type="password" placeholder="Create a password"></div>
+      </div>
+      <div class="form-group">
+        <label for="eventId">Event ID</label>
+        <div class="input-with-icon"><i class="fas fa-ticket"></i><input id="eventId" placeholder="Event ID"></div>
+      </div>
+      <button type="submit" class="btn">Create Organizer Account</button>
+    </form>
+    <div class="footer">Already registered? <a id="login-link">Log in</a></div>
+  </div>
+
+  <div class="modal" id="login-modal">
+    <div class="modal-content">
+      <span class="close-btn" id="close-modal">&times;</span>
+      <h2 style="margin-bottom:12px">Organizer Login</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <div class="input-with-icon"><i class="fas fa-envelope"></i><input id="login-email" type="email" placeholder="Email"></div>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <div class="input-with-icon"><i class="fas fa-lock"></i><input id="login-password" type="password" placeholder="Password"></div>
+        </div>
+        <div class="form-group">
+          <label for="login-eventId">Event ID</label>
+          <div class="input-with-icon"><i class="fas fa-ticket"></i><input id="login-eventId" placeholder="Event ID" value=""></div>
+        </div>
+        <button type="submit" class="btn">Login</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

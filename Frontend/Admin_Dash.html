@@ -864,25 +864,9 @@
                     <label for="eventDate">Date</label>
                     <input type="date" id="eventDate" required>
                 </div>
-                 <div class="form-group">
-                    <label for="eventOrganizer">Organizer</label>
-                    <input type="text" id="eventOrganizer" required>
-                </div>
                 <div class="form-group">
                     <label for="eventLocation">Location</label>
                     <input type="text" id="eventLocation" required>
-                </div>
-                 <div class="form-group">
-                    <label for="eventAttendees">Attendees</label>
-                    <input type="text" id="eventAttendees" required>
-                </div>
-                <div class="form-group">
-                    <label for="eventType">Event Type</label>
-                    <select id="eventType" required>
-                        <option value="University event">University event</option>
-                        <option value="NGO">NGO</option>
-                        <option value="Basic community">Basic community</option>
-                    </select>
                 </div>
                 <div class="form-group">
                     <label for="eventDescription">Description</label>
@@ -894,6 +878,41 @@
     </div>
 
     <script>
+        // Authentication & Admin profile wiring
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                const adminRaw = localStorage.getItem('admin');
+                if (!adminRaw) {
+                    window.location.href = 'Login.html';
+                    return;
+                }
+                const admin = JSON.parse(adminRaw);
+                window.currentAdmin = admin; // Make admin accessible to other functions
+                // Populate profile card
+                const nameEl = document.querySelector('.profile-info h4');
+                const titleEls = document.querySelectorAll('.profile-info p');
+                const emailEl = titleEls && titleEls.length > 1 ? titleEls[1] : null;
+                if (nameEl) nameEl.textContent = admin.name || 'Admin';
+                if (emailEl) emailEl.textContent = admin.email || '';
+                // Optional avatar
+                const avatarImg = document.querySelector('.profile-img img');
+                if (avatarImg && admin.avatar_url) {
+                    avatarImg.src = admin.avatar_url;
+                }
+                // Logout handler
+                const logoutBtn = document.querySelector('.profile-actions .btn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', () => {
+                        localStorage.removeItem('admin');
+                        window.location.href = 'Login.html';
+                    });
+                }
+            } catch (e) {
+                console.error('Admin data error', e);
+                window.location.href = 'Login.html';
+            }
+        });
+
         // Sample events data
         let events = [
             {
@@ -1004,13 +1023,18 @@
                  aiSuggestionHtml = `<p><strong>Status:</strong> Awaiting Review</p>`;
             }
 
+            const organizerLine = event.organizer ? `<p><strong>Organizer:</strong> ${event.organizer}</p>` : '';
+            const link = (window.currentAdmin && event.id) ? `Event_Page.html?admin_id=${encodeURIComponent(window.currentAdmin.admin_id)}&event_id=${encodeURIComponent(event.id)}` : null;
+            const linkHtml = link ? `<p style="margin-top:8px;"><a href="${link}" class="btn btn-primary">Open Event Page</a></p>` : '';
+
             eventDiv.innerHTML = `
                 <div class="event-details">
                     <h3>${event.name}</h3>
                     <p><strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}</p>
                     ${budgetHtml}
-                    <p><strong>Organizer:</strong> ${event.organizer}</p>
+                    ${organizerLine}
                     ${aiSuggestionHtml}
+                    ${linkHtml}
                 </div>
                 <div class="event-actions">
                     <div>
@@ -1028,15 +1052,21 @@
             const eventDiv = document.createElement('div');
             eventDiv.className = 'event-detail-card';
             eventDiv.dataset.id = event.id;
+            const organizerLine = event.organizer ? `<p><strong>Organizer:</strong> ${event.organizer}</p>` : '';
+            const attendeesLine = event.attendees ? `<p><strong>Attendees:</strong> ${event.attendees}</p>` : '';
+            const typeLine = event.type ? `<p><strong>Type:</strong> ${event.type}</p>` : '';
+            const link = (window.currentAdmin && event.id) ? `Event_Page.html?admin_id=${encodeURIComponent(window.currentAdmin.admin_id)}&event_id=${encodeURIComponent(event.id)}` : null;
+            const linkHtml = link ? `<p style="margin-top:8px;"><a href="${link}" class="btn btn-primary">Open Event Page</a></p>` : '';
             
             eventDiv.innerHTML = `
                 <h3>${event.name}</h3>
                 <p><strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}</p>
-                <p><strong>Organizer:</strong> ${event.organizer}</p>
+                ${organizerLine}
                 <p><strong>Location:</strong> ${event.location}</p>
-                <p><strong>Attendees:</strong> ${event.attendees}</p>
-                <p><strong>Type:</strong> ${event.type}</p>
+                ${attendeesLine}
+                ${typeLine}
                 <p><strong>Description:</strong> ${event.description}</p>
+                ${linkHtml}
             `;
             
             return eventDiv;
@@ -1137,28 +1167,74 @@
 
             document.getElementById('addEventBtn').addEventListener('click', () => addEventModal.classList.add('show'));
 
-            document.getElementById('addEventForm').addEventListener('submit', function(e) {
+            document.getElementById('addEventForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
-                
-                const newEvent = {
-                    id: new Date().getTime(),
-                    name: document.getElementById('eventName').value,
-                    date: document.getElementById('eventDate').value,
-                    organizer: document.getElementById('eventOrganizer').value,
-                    status: 'review',
-                    description: document.getElementById('eventDescription').value,
-                    type: document.getElementById('eventType').value,
-                    location: document.getElementById('eventLocation').value,
-                    attendees: document.getElementById('eventAttendees').value
-                };
-                
-                events.push(newEvent);
-                renderEvents();
-                
-                this.reset();
-                addEventModal.classList.remove('show');
-                
-                alert(`Event "${newEvent.name}" has been submitted for review!`);
+                try {
+                    const adminRaw = localStorage.getItem('admin');
+                    const admin = adminRaw ? JSON.parse(adminRaw) : null;
+                    if (!admin || !admin.admin_id) {
+                        alert('Missing admin session. Please login again.');
+                        window.location.href = 'Login.html';
+                        return;
+                    }
+
+                    const payload = {
+                        admin_id: admin.admin_id,
+                        name: document.getElementById('eventName').value.trim(),
+                        date: document.getElementById('eventDate').value,
+                        location: document.getElementById('eventLocation').value.trim(),
+                        description: document.getElementById('eventDescription').value.trim(),
+                        status: 'review',
+                    };
+
+                    const resp = await fetch('/api/events', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) {
+                        console.error(data);
+                        alert(data.error || 'Failed to create event');
+                        return;
+                    }
+
+                    const ev = data.event;
+                    // Mirror structure expected by renderer while keeping ids
+                    const newEvent = {
+                        id: ev.event_id, // use event_id as our identifier in UI
+                        name: ev.name,
+                        date: ev.date,
+                        status: ev.status,
+                        description: ev.description,
+                        location: ev.location,
+                        organizer: admin.name,
+                    };
+                    events.push(newEvent);
+                    renderEvents();
+
+                    this.reset();
+                    addEventModal.classList.remove('show');
+
+                    const link = `Event_Page.html?admin_id=${encodeURIComponent(ev.admin_id)}&event_id=${encodeURIComponent(ev.event_id)}`;
+                    // Show a temporary success banner with link
+                    const banner = document.createElement('div');
+                    banner.style.position = 'fixed';
+                    banner.style.bottom = '20px';
+                    banner.style.right = '20px';
+                    banner.style.background = '#1f2937';
+                    banner.style.border = '1px solid #10b981';
+                    banner.style.color = 'white';
+                    banner.style.padding = '12px 16px';
+                    banner.style.borderRadius = '8px';
+                    banner.style.boxShadow = '0 10px 30px rgba(0,0,0,.3)';
+                    banner.innerHTML = `Event "${ev.name}" created. <a href="${link}" style="color:#10b981; text-decoration:underline; margin-left:8px;">Open event page</a>`;
+                    document.body.appendChild(banner);
+                    setTimeout(() => banner.remove(), 8000);
+                } catch (err) {
+                    console.error(err);
+                    alert('Unexpected error creating event');
+                }
             });
             
             // START: Added CSV Export listener
@@ -1210,13 +1286,17 @@
                 `;
             }
             
+            const organizerLine = event.organizer ? `<p><strong>Organizer:</strong> ${event.organizer}</p>` : '';
+            const attendeesLine = event.attendees ? `<p><strong>Attendees:</strong> ${event.attendees}</p>` : '';
+            const typeLine = event.type ? `<p><strong>Type:</strong> ${event.type}</p>` : '';
+
             modalBody.innerHTML = `
                 <h4>Event Details</h4>
                 <p><strong>Date:</strong> ${new Date(event.date).toLocaleDateString()}</p>
-                <p><strong>Organizer:</strong> ${event.organizer}</p>
+                ${organizerLine}
                 <p><strong>Location:</strong> ${event.location}</p>
-                <p><strong>Attendees:</strong> ${event.attendees}</p>
-                <p><strong>Type:</strong> ${event.type}</p>
+                ${attendeesLine}
+                ${typeLine}
                 <p><strong>Description:</strong> ${event.description}</p>
                 ${budgetDetailsHtml}
             `;

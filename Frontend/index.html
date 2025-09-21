@@ -3,152 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lock Contract Interactor</title>
+    <title>CLAVIS — Event Management Platform</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 2rem auto; background-color: #f0f2f5; color: #333; }
-        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #1a1a1a; }
-        button { font-size: 1rem; padding: 0.75rem 1.5rem; margin-top: 1rem; cursor: pointer; border-radius: 8px; border: none; background-color: #007bff; color: white; width: 100%; transition: background-color 0.2s; }
-        button:hover { background-color: #0056b3; }
-        #status { margin-top: 1.5rem; padding: 1rem; background: #e9ecef; border-radius: 8px; word-wrap: break-word; line-height: 1.5; }
-        .hidden { display: none; }
+        :root {
+          --bg: #0b0b0f;
+          --card: #12121a;
+          --muted: #9aa0aa;
+          --primary: #BE34D5;
+          --secondary: #34B8D5;
+          --accent: #D4C4A3;
+          --text: #e8ebf0;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: radial-gradient(1200px 500px at 20% -10%, rgba(190,52,213,.15), transparent 60%), radial-gradient(900px 400px at 120% 10%, rgba(52,184,213,.15), transparent 60%), var(--bg); color: var(--text); }
+        a { color: inherit; text-decoration: none; }
+        .nav { position: sticky; top: 0; backdrop-filter: blur(10px); background: rgba(11,11,15,0.6); border-bottom: 1px solid rgba(255,255,255,0.06); z-index: 20; }
+        .nav-inner { max-width: 1200px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+        .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .6px; }
+        .brand i { color: var(--primary); }
+        .nav-actions a { padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); color: var(--text); margin-left: 8px; }
+        .nav-actions a.cta { background: linear-gradient(90deg, var(--primary), var(--secondary)); border: none; color: #0b0b0f; font-weight: 700; }
+
+        .hero { max-width: 1200px; margin: 0 auto; padding: 80px 20px 40px; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 40px; align-items: center; }
+        .hero h1 { font-size: clamp(36px, 6vw, 56px); line-height: 1.05; margin: 0; }
+        .hero h1 .gradient { background: linear-gradient(90deg, var(--primary), var(--secondary)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hero p { color: var(--muted); font-size: 18px; margin: 18px 0 26px; }
+        .hero .buttons { display: flex; gap: 14px; flex-wrap: wrap; }
+        .btn { padding: 14px 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); color: var(--text); background: #171722; cursor: pointer; font-weight: 600; }
+        .btn.primary { background: linear-gradient(90deg, var(--primary), var(--secondary)); color: #0b0b0f; border: none; }
+        .btn.ghost { background: transparent; }
+        .hero-card { background: linear-gradient(160deg, rgba(190,52,213,0.12), rgba(52,184,213,0.12)); border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 26px; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+        .hero-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; }
+        .metric { background: var(--card); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 14px; text-align: center; }
+        .metric h3 { margin: 0; font-size: 24px; }
+        .metric p { margin: 6px 0 0; color: var(--muted); font-size: 13px; }
+
+        .features { max-width: 1200px; margin: 20px auto 0; padding: 40px 20px 80px; }
+        .section-head { text-align: center; margin-bottom: 24px; }
+        .section-head h2 { margin: 0; font-size: clamp(24px, 4vw, 34px); }
+        .section-head p { color: var(--muted); margin-top: 8px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+        .card { background: var(--card); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 18px; }
+        .card i { font-size: 22px; color: var(--secondary); }
+        .card h3 { margin: 10px 0 6px; font-size: 18px; }
+        .card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+        .footer { border-top: 1px solid rgba(255,255,255,0.06); background: #0c0c12; }
+        .footer-inner { max-width: 1200px; margin: 0 auto; padding: 24px 20px; display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 14px; }
+        .links { display: flex; gap: 14px; flex-wrap: wrap; }
+
+        @media (max-width: 920px) {
+          .hero { grid-template-columns: 1fr; padding-top: 60px; }
+        }
     </style>
+
 </head>
 <body>
-    <div class="container">
-        <h1>Lock Contract Interface</h1>
-        <button id="connectButton">Connect Wallet</button>
-        <div id="status">Please connect your wallet to interact with the contract.</div>
-        <button id="withdrawButton" class="hidden">Attempt Withdraw</button>
-    </div>
+    <header class="nav">
+      <div class="nav-inner">
+        <div class="brand">
+          <i class="fas fa-key"></i>
+          <span>CLAVIS</span>
+        </div>
+        <div class="nav-actions">
+          <a href="Login.html">Login</a>
+          <a class="cta" href="Login.html">Sign up</a>
+        </div>
+      </div>
+    </header>
 
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5/dist/ethers.umd.min.js"></script>
+    <section class="hero">
+      <div>
+        <h1>Run smarter events with <span class="gradient">CLAVIS</span></h1>
+        <p>All-in-one event management with budget oversight, transparent approvals, and blockchain-ready workflows. Built for admins who want control, clarity, and speed.</p>
+        <div class="buttons">
+          <a class="btn primary" href="Login.html"><i class="fa-solid fa-user-plus"></i> Get Started — Sign up</a>
+          <a class="btn ghost" href="#stack"><i class="fa-solid fa-layer-group"></i> Explore Tech Stack</a>
+        </div>
+        <div class="hero-metrics">
+          <div class="metric"><h3>99.9%</h3><p>Uptime</p></div>
+          <div class="metric"><h3>1K+</h3><p>Events Tracked</p></div>
+          <div class="metric"><h3>4.9/5</h3><p>Admin Satisfaction</p></div>
+        </div>
+      </div>
+      <div class="hero-card">
+        <h3 style="margin:0 0 12px 0;">Why CLAVIS</h3>
+        <ul style="margin:0; padding-left:18px; color:var(--muted); line-height:1.8;">
+          <li>Budget requests with AI suggestions and audit trails</li>
+          <li>Admin dashboards with KPIs and charts</li>
+          <li>Secure, hashed credentials and role-based access</li>
+          <li>Optional MetaMask integration for wallet-linked admins</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="stack" class="features">
+      <div class="section-head">
+        <h2>Modern, reliable stack</h2>
+        <p>We use proven, scalable technologies to keep your operations smooth.</p>
+      </div>
+      <div class="grid">
+        <div class="card">
+          <i class="fa-brands fa-node-js"></i>
+          <h3>Node.js + Express</h3>
+          <p>Fast APIs, static hosting for the frontend, and clean routing for admin endpoints.</p>
+        </div>
+        <div class="card">
+          <i class="fa-solid fa-database"></i>
+          <h3>MongoDB + Mongoose</h3>
+          <p>Flexible schemas, indexes for fast lookups, and secure data modeling for admins.</p>
+        </div>
+        <div class="card">
+          <i class="fa-brands fa-ethereum"></i>
+          <h3>Ethereum + MetaMask</h3>
+          <p>Optional wallet-linked users for verifiable ownership and blockchain integrations.</p>
+        </div>
+        <div class="card">
+          <i class="fa-solid fa-chart-pie"></i>
+          <h3>Chart.js</h3>
+          <p>Beautiful charts in the admin dashboard for performance and budget analytics.</p>
+        </div>
+        <div class="card">
+          <i class="fa-solid fa-code"></i>
+          <h3>Vanilla Frontend</h3>
+          <p>Lightweight HTML/CSS/JS pages for speed, simplicity, and maintainability.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        <div>© <span id="year"></span> CLAVIS. All rights reserved.</div>
+        <div class="links">
+          <a href="Login.html">Sign up</a>
+          <a href="#stack">Tech Stack</a>
+        </div>
+      </div>
+    </footer>
+
     <script>
-        // --- ⚙️ CONFIGURATION ---
-        // 1. Paste your deployed contract address here.
-        //    You get this from the `npx hardhat ignition deploy...` command output.
-        const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-
-        // 2. This is the corrected and formatted ABI.
-        const contractABI = [
-            {
-                "inputs": [
-                    {
-                        "internalType": "uint256",
-                        "name": "_unlockTime",
-                        "type": "uint256"
-                    }
-                ],
-                "stateMutability": "payable",
-                "type": "constructor"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {
-                        "indexed": false,
-                        "internalType": "uint256",
-                        "name": "amount",
-                        "type": "uint256"
-                    },
-                    {
-                        "indexed": false,
-                        "internalType": "uint256",
-                        "name": "when",
-                        "type": "uint256"
-                    }
-                ],
-                "name": "Withdrawal",
-                "type": "event"
-            },
-            {
-                "inputs": [],
-                "name": "owner",
-                "outputs": [
-                    {
-                        "internalType": "address payable",
-                        "name": "",
-                        "type": "address"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "unlockTime",
-                "outputs": [
-                    {
-                        "internalType": "uint256",
-                        "name": "",
-                        "type": "uint256"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "withdraw",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            }
-        ];
-        // --- END CONFIGURATION ---
-
-        const connectButton = document.getElementById('connectButton');
-        const withdrawButton = document.getElementById('withdrawButton');
-        const statusDiv = document.getElementById('status');
-
-        let provider;
-        let signer;
-        let contract;
-
-        connectButton.addEventListener('click', async () => {
-            if (typeof window.ethereum === 'undefined') {
-                return alert('Please install MetaMask to use this dApp!');
-            }
-            try {
-                // Request account access
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                signer = provider.getSigner();
-                contract = new ethers.Contract(contractAddress, contractABI, signer);
-                
-                const address = await signer.getAddress();
-                statusDiv.innerHTML = `✅ Connected: ${address}<br><br>`;
-                
-                const unlockTime = await contract.unlockTime();
-                const unlockDate = new Date(unlockTime.toNumber() * 1000);
-                statusDiv.innerHTML += `Funds can be withdrawn after:<br><b>${unlockDate.toLocaleString()}</b>`;
-
-                connectButton.classList.add('hidden');
-                withdrawButton.classList.remove('hidden');
-
-            } catch (error) {
-                console.error(error);
-                statusDiv.innerHTML = "❌ Failed to connect wallet or fetch contract data.";
-            }
-        });
-
-        withdrawButton.addEventListener('click', async () => {
-            if (!contract) return alert('Please connect your wallet first.');
-            
-            statusDiv.innerHTML = '⏳ Sending withdraw transaction... Please confirm in MetaMask.';
-            
-            try {
-                const tx = await contract.withdraw();
-                statusDiv.innerHTML += '<br>Transaction sent. Waiting for confirmation...';
-                await tx.wait(); // Wait for the transaction to be mined
-                statusDiv.innerHTML = '✅ Withdrawal successful!';
-                
-            } catch (error) {
-                console.error(error);
-                // This catches the revert message from the smart contract
-                statusDiv.innerHTML = `❌ Withdrawal failed: ${error.reason || error.message}`;
-            }
-        });
+      document.getElementById('year').textContent = new Date().getFullYear();
     </script>
+
 </body>
 </html>

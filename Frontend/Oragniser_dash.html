@@ -1414,5 +1414,47 @@
             });
         });
     </script>
+
+    <script>
+      // Ensure organizer dashboard loads with correct organizer and event context
+      (function() {
+        const params = new URLSearchParams(window.location.search);
+        const adminId = params.get('admin_id');
+        const eventId = params.get('event_id');
+
+        function backToEvent(msg) {
+          if (msg) console.warn(msg);
+          if (adminId && eventId) {
+            window.location.href = `Event_Page.html?admin_id=${encodeURIComponent(adminId)}&event_id=${encodeURIComponent(eventId)}`;
+          } else {
+            window.location.href = 'Event_Page.html';
+          }
+        }
+
+        const raw = localStorage.getItem('organizer');
+        if (!raw) return backToEvent('No organizer session');
+        let org = null;
+        try { org = JSON.parse(raw); } catch { return backToEvent('Corrupt organizer session'); }
+        if (!org || (eventId && org.event_id && org.event_id !== eventId)) return backToEvent('Organizer not scoped to this event');
+
+        // Set header organizer name/avatar
+        const name = org.name || org.email || 'Organizer';
+        const avatarImg = document.querySelector('.user-profile .profile-btn img');
+        const nameSpan = document.querySelector('.user-profile .profile-btn span');
+        if (nameSpan) nameSpan.textContent = name;
+        if (avatarImg) {
+          avatarImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=BE34D5&color=fff`;
+        }
+
+        // Fetch event to set document title
+        if (eventId) {
+          fetch(`/api/events/${encodeURIComponent(eventId)}`).then(r => r.json()).then(d => {
+            if (d && d.event) {
+              document.title = `${d.event.name} — Organizer Dashboard`;
+            }
+          }).catch(console.warn);
+        }
+      })();
+    </script>
 </body>
 </html>

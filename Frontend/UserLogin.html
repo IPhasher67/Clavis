@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLAVIS - User Signup / Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-darker: #000000;
+            --primary-gradient-start: #BE34D5;
+            --primary-gradient-end: #E942A6;
+            --secondary-accent: #34B8D5;
+            --highlight: #D4C4A3;
+            --text-light: #FFFFFF;
+            --input-bg: #1E1E1E;
+            --success: #4CAF50;
+            --warning: #FF9800;
+            --error: #F44336;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, var(--bg-darker), var(--bg-dark)); color: var(--text-light); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .container { width: 100%; max-width: 450px; background: rgba(30, 30, 30, 0.8); backdrop-filter: blur(10px); border-radius: 16px; padding: 30px; box-shadow: 0 0 30px rgba(190, 52, 213, 0.2); border: 1px solid rgba(212, 196, 163, 0.1); position: relative; overflow: hidden; }
+        .container::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, transparent 20%, rgba(52, 184, 213, 0.1) 25%, transparent 30%); animation: rotate 20s linear infinite; z-index: -1; }
+        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .logo { text-align: center; margin-bottom: 30px; }
+        .logo h1 { font-size: 32px; background: linear-gradient(to right, var(--primary-gradient-start), var(--primary-gradient-end)); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 700; letter-spacing: 1.5px; }
+        .logo p { color: var(--highlight); font-size: 14px; margin-top: 5px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--highlight); }
+        .input-with-icon { position: relative; }
+        .input-with-icon i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--secondary-accent); }
+        .input-with-icon input, .input-with-icon select { width: 100%; padding: 14px 14px 14px 45px; border-radius: 10px; border: 1px solid rgba(52, 184, 213, 0.3); background-color: var(--input-bg); color: var(--text-light); font-size: 15px; transition: all 0.3s ease; }
+        .input-with-icon input:focus, .input-with-icon select:focus { outline: none; border-color: var(--secondary-accent); box-shadow: 0 0 10px rgba(52, 184, 213, 0.5); }
+        .password-strength { margin-top: 8px; height: 6px; border-radius: 3px; background-color: #555; overflow: hidden; }
+        .strength-meter { height: 100%; width: 0%; transition: width 0.3s ease, background-color 0.3s ease; }
+        .strength-text { font-size: 13px; margin-top: 5px; text-align: right; }
+        .password-weak { background-color: var(--error); width: 33%; }
+        .password-medium { background-color: var(--warning); width: 66%; }
+        .password-strong { background-color: var(--success); width: 100%; }
+        .suggest-password { display: block; margin-top: 10px; color: var(--secondary-accent); background: none; border: none; cursor: pointer; font-size: 13px; text-align: right; text-decoration: underline; }
+        .submit-btn { width: 100%; padding: 14px; background: transparent; color: var(--text-light); border: 2px solid var(--secondary-accent); border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 10px; }
+        .submit-btn:hover { background: rgba(52, 184, 213, 0.1); box-shadow: 0 0 15px rgba(52, 184, 213, 0.5); }
+        .footer { text-align: center; margin-top: 25px; font-size: 14px; color: var(--highlight); }
+        .footer a { color: var(--secondary-accent); text-decoration: none; transition: color 0.3s ease; cursor: pointer; }
+        .footer a:hover { text-decoration: underline; color: var(--primary-gradient-start); }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--bg-dark); padding: 30px; border-radius: 16px; width: 90%; max-width: 400px; box-shadow: 0 0 30px rgba(190, 52, 213, 0.3); border: 1px solid var(--highlight); position: relative; }
+        .close-btn { position: absolute; top: 15px; right: 15px; font-size: 24px; color: var(--highlight); cursor: pointer; transition: color 0.3s ease; }
+        .close-btn:hover { color: var(--secondary-accent); }
+        .modal-title { text-align: center; margin-bottom: 20px; font-size: 24px; background: linear-gradient(to right, var(--primary-gradient-start), var(--primary-gradient-end)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .modal-submit-btn { width: 100%; padding: 14px; background: linear-gradient(to right, var(--primary-gradient-start), var(--primary-gradient-end)); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; margin-top: 15px; }
+        .modal-submit-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(190, 52, 213, 0.4); }
+        @media (max-width: 480px) { .container { padding: 20px; } .logo h1 { font-size: 28px; } .input-with-icon input, .input-with-icon select { padding: 12px 12px 12px 40px; } .modal-content { padding: 20px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>CLAVIS</h1>
+            <p>Register to your event</p>
+        </div>
+        <form id="signup-form">
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-user"></i>
+                    <input type="text" id="name" placeholder="Enter your full name" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" placeholder="Enter your email" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" placeholder="Create a strong password" required>
+                </div>
+                <div class="password-strength"><div class="strength-meter" id="strength-meter"></div></div>
+                <div class="strength-text" id="strength-text">Password strength</div>
+                <button type="button" class="suggest-password" id="suggest-password">Suggest a strong password</button>
+            </div>
+            <div class="form-group">
+                <label for="eventId">Event ID</label>
+                <div class="input-with-icon">
+                    <i class="fas fa-ticket"></i>
+                    <input type="text" id="eventId" placeholder="Enter the event ID" required>
+                </div>
+            </div>
+            <button type="submit" class="submit-btn">Create Account</button>
+        </form>
+        <div class="footer">Already registered? <a id="login-link">Log in</a></div>
+    </div>
+
+    <div class="modal" id="login-modal">
+        <div class="modal-content">
+            <span class="close-btn" id="close-modal">&times;</span>
+            <h2 class="modal-title">Login to CLAVIS</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email">Email Address</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="login-email" placeholder="Enter your email" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="login-password" placeholder="Enter your password" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="login-eventId">Event ID</label>
+                    <div class="input-with-icon">
+                        <i class="fas fa-ticket"></i>
+                        <input type="text" id="login-eventId" placeholder="Enter the event ID" required>
+                    </div>
+                </div>
+                <button type="submit" class="modal-submit-btn">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const params = new URLSearchParams(window.location.search);
+            const qAdminId = params.get('admin_id');
+            const qEventId = params.get('event_id');
+            const form = document.getElementById('signup-form');
+            const nameInput = document.getElementById('name');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const eventIdInput = document.getElementById('eventId');
+            const strengthMeter = document.getElementById('strength-meter');
+            const strengthText = document.getElementById('strength-text');
+            const suggestPasswordBtn = document.getElementById('suggest-password');
+            const loginLink = document.getElementById('login-link');
+            const loginModal = document.getElementById('login-modal');
+            const closeModal = document.getElementById('close-modal');
+            const loginForm = document.getElementById('login-form');
+
+            // Prefill eventId from query if present
+            if (qEventId) {
+                eventIdInput.value = qEventId;
+                eventIdInput.readOnly = true;
+            }
+
+            // Password strength
+            passwordInput.addEventListener('input', checkPasswordStrength);
+            suggestPasswordBtn.addEventListener('click', function() {
+                passwordInput.type = 'text';
+                passwordInput.value = generatePassword();
+                checkPasswordStrength();
+                setTimeout(() => { passwordInput.type = 'password'; }, 600);
+            });
+
+            // Signup submit
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                if (!validateForm()) return;
+                try {
+                    const resp = await fetch('/api/users/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name: nameInput.value.trim(),
+                            email: emailInput.value.trim(),
+                            password: passwordInput.value,
+                            eventId: eventIdInput.value.trim()
+                        })
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) { alert(data.error || 'Registration failed'); return; }
+                    localStorage.setItem('eventUser', JSON.stringify(data.user));
+                    // Redirect back to event page with preserved query
+                    if (qAdminId && (qEventId || data.user?.event_id)) {
+                        const ev = qEventId || data.user.event_id;
+                        window.location.href = `Event_Page.html?admin_id=${encodeURIComponent(qAdminId)}&event_id=${encodeURIComponent(ev)}`;
+                    } else {
+                        window.location.href = 'Event_Page.html';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('An unexpected error occurred.');
+                }
+            });
+
+            // Login modal handlers
+            loginLink.addEventListener('click', () => loginModal.style.display = 'flex');
+            closeModal.addEventListener('click', () => loginModal.style.display = 'none');
+            window.addEventListener('click', (e) => { if (e.target === loginModal) loginModal.style.display = 'none'; });
+
+            // Login submit
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value.trim();
+                const password = document.getElementById('login-password').value;
+                const eventId = (document.getElementById('login-eventId').value.trim() || qEventId || '');
+                if (!email || !password || !eventId) { alert('Please fill all fields.'); return; }
+                try {
+                    const resp = await fetch('/api/users/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email, password, eventId })
+                    });
+                    const data = await resp.json();
+                    if (!resp.ok) { alert(data.error || 'Login failed'); return; }
+                    localStorage.setItem('eventUser', JSON.stringify(data.user));
+                    if (qAdminId && (qEventId || data.user?.event_id)) {
+                        const ev = qEventId || data.user.event_id;
+                        window.location.href = `Event_Page.html?admin_id=${encodeURIComponent(qAdminId)}&event_id=${encodeURIComponent(ev)}`;
+                    } else {
+                        window.location.href = 'Event_Page.html';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert('An unexpected error occurred.');
+                }
+            });
+
+            // Utils
+            function checkPasswordStrength() {
+                const password = passwordInput.value;
+                let strength = 0; let message = '';
+                if (password.length > 0) {
+                    if (password.length < 6) { strength = 1; message = 'Too short'; }
+                    else if (password.length < 10) { strength += 1; } else { strength += 2; }
+                    if (/[A-Z]/.test(password)) strength += 1;
+                    if (/[0-9]/.test(password)) strength += 1;
+                    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+                    if (strength < 3) { strengthMeter.className = 'strength-meter password-weak'; message = 'Weak password'; }
+                    else if (strength < 5) { strengthMeter.className = 'strength-meter password-medium'; message = 'Medium strength'; }
+                    else { strengthMeter.className = 'strength-meter password-strong'; message = 'Strong password!'; }
+                } else { strengthMeter.className = 'strength-meter'; message = 'Password strength'; }
+                strengthText.textContent = message;
+            }
+            function generatePassword() {
+                const length = 12; const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+"; let pwd = '';
+                pwd += getRandomChar('abcdefghijklmnopqrstuvwxyz');
+                pwd += getRandomChar('ABCDEFGHIJKLMNOPQRSTUVWXYZ');
+                pwd += getRandomChar('0123456789');
+                pwd += getRandomChar('!@#$%^&*()_+');
+                for (let i = pwd.length; i < length; i++) { const idx = Math.floor(Math.random()*charset.length); pwd += charset[idx]; }
+                return pwd.split('').sort(() => Math.random() - 0.5).join('');
+            }
+            function getRandomChar(set) { const idx = Math.floor(Math.random()*set.length); return set[idx]; }
+            function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
+            function validateForm() {
+                if (!nameInput.value.trim()) { alert('Please enter your name.'); return false; }
+                if (!emailInput.value || !isValidEmail(emailInput.value)) { alert('Please enter a valid email.'); return false; }
+                if (!passwordInput.value) { alert('Please enter a password.'); return false; }
+                if (!eventIdInput.value.trim()) { alert('Please enter the event ID.'); return false; }
+                return true;
+            }
+        });
+    </script>
+</body>
+</html>
