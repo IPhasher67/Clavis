@@ -175,6 +175,10 @@ const EventSchema = new mongoose.Schema(
     location: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
     status: { type: String, enum: ['review', 'approve', 'deny'], default: 'review' },
+    // Optional token metadata for on-chain integration
+    token_name: { type: String, default: '', trim: true },
+    token_symbol: { type: String, default: '', trim: true },
+    token_contract: { type: String, default: '', trim: true },
   },
   { timestamps: true, toJSON: { virtuals: true, versionKey: false }, toObject: { virtuals: true, versionKey: false } }
 );

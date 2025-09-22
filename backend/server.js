@@ -1,9 +1,11 @@
 const express = require("express");
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const { v4: uuidv4 } = require('uuid');
-
+const { ethers } = require('ethers');
+const { JsonRpcProvider } = require('ethers');
 dotenv.config();
 
 // Initialize database (MongoDB via mongoose)
@@ -35,6 +37,13 @@ app.get('/api/admin/:adminId/events', async (req, res) => {
     console.error('List admin events error:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
+});
+app.get('/hello', async (req, res) => {
+  const artifactPath = 'C:/Users/visma/Desktop/New folder/blockchain/artifacts/contracts/FinalVaultWithTimeConstrain.sol/UniversityTokenVault.json';
+  const raw = fs.readFileSync(artifactPath, 'utf-8');
+  const json = JSON.parse(raw);
+  return res.send(json);
+
 });
 
 // Optional: list events with query filters (e.g., by adminId)
@@ -94,10 +103,125 @@ app.get('/api/programs', async (req, res) => {
   }
 });
 
-// Create a new Event
+// Helper: load contract artifact (ABI & bytecode)
+function loadVaultArtifact() {
+  try {
+    const candidates = [
+      // Hardhat default output for your source/contract names
+        'C:/Users/visma/Desktop/New folder/blockchain/artifacts/contracts/FinalVaultWithTimeConstrain.sol/UniversityTokenVault.json',
+        'C:/Users/visma/Desktop/New folder/blockchain/artifacts/build-info/6488c99329bb87429dead351383ddb03.json',
+        'C:/Users/visma/Desktop/New folder/blockchain/artifacts/contracts/FinalVaultWithTimeConstrain.sol/UniversityTokenVault.json',
+        '(fallback) parse build-info under artifacts/build-info/*.json',
+    ];
+    let chosen = null;
+    for (const p of candidates) {
+      if (fs.existsSync(p)) { chosen = p; break; }
+    }
+    // If not found in candidates, recursively search artifacts dir for UniversityTokenVault.json
+    if (!chosen) {
+      const root = path.join(__dirname, '..', 'blockchain', 'artifacts');
+      if (fs.existsSync(root)) {
+        const stack = [root];
+        while (stack.length) {
+          const dir = stack.pop();
+          const entries = fs.readdirSync(dir, { withFileTypes: true });
+          for (const ent of entries) {
+            const p = path.join(dir, ent.name);
+            if (ent.isDirectory()) stack.push(p);
+            else if (ent.isFile() && ent.name === 'UniversityTokenVault.json') { chosen = p; break; }
+          }
+          if (chosen) break;
+        }
+      }
+    }
+    // Fallback: parse Hardhat build-info to extract ABI/bytecode when per-contract artifact isn't present
+    if (!chosen) {
+      const biDir = path.join(__dirname, '..', 'blockchain', 'artifacts', 'build-info');
+      if (fs.existsSync(biDir)) {
+        const files = fs.readdirSync(biDir).filter(f => f.endsWith('.json'));
+        // Prefer most recent files first
+        files.sort((a, b) => fs.statSync(path.join(biDir, b)).mtimeMs - fs.statSync(path.join(biDir, a)).mtimeMs);
+        for (const f of files) {
+          try {
+            const p = path.join(biDir, f);
+            const raw = fs.readFileSync(p, 'utf-8');
+            const bi = JSON.parse(raw);
+            const contracts = (bi && bi.output && bi.output.contracts) || {};
+            for (const source of Object.keys(contracts)) {
+              const dict = contracts[source] || {};
+              const c = dict['UniversityTokenVault'];
+              if (c && c.abi && c.evm && c.evm.bytecode && c.evm.bytecode.object) {
+                const obj = c.evm.bytecode.object;
+                const bytecode = obj && (obj.startsWith('0x') ? obj : ('0x' + obj));
+                if (bytecode) return { abi: c.abi, bytecode, path: p };
+              }
+            }
+          } catch {}
+        }
+      }
+      return null;
+    }
+    const raw = fs.readFileSync(chosen, 'utf-8');
+    const json = JSON.parse(raw);
+    if (!json.abi || !json.bytecode) return null;
+    return { abi: json.abi, bytecode: json.bytecode, path: chosen };
+  } catch (_) { return null; }
+}
+app.get('/testing', (req, res) => {
+  // artifactPath = 'C:/Users/visma/Desktop/New folder/blockchain/artifacts/contracts/FinalVaultWithTimeConstrain.sol/UniversityTokenVault.json';
+  // const raw = fs.readFileSync(artifactPath, 'utf-8');
+  // const json = JSON.parse(raw);
+  // return res.send(json);
+  res.send('hello')
+  
+})
+
+// Expose contract artifact so the browser can deploy via MetaMask
+app.get('/api/contracts/university-vault', (req, res) => {
+  try {
+    const artifact = loadVaultArtifact();
+    if (!artifact) {
+      const candidates = [
+       ' C:/Users/visma/Desktop/New folder/blockchain/artifacts/contracts/FinalVaultWithTimeConstrain.sol/UniversityTokenVault.json',
+        'C:/Users/visma/Desktop/New folder/blockchain/artifacts/build-info/6488c99329bb87429dead351383ddb03.json',
+        'C:/Users/visma/Desktop/New folder/blockchain/artifacts/contracts/FinalVaultWithTimeConstrain.sol/UniversityTokenVault.json',
+        '(fallback) parse build-info under artifacts/build-info/*.json',
+      ];
+      console.warn('Contract artifact not found. Tried paths:', candidates);
+      return res.status(404).json({ error: 'Contract artifact not found', candidates });
+    }
+    return res.json(artifact);
+  } catch (err) {
+    console.error('Artifact load error:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Save/Update deployed token address on an event
+app.patch('/api/events/:eventId/token', async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const { token_contract } = req.body || {};
+    if (!eventId || !token_contract) {
+      return res.status(400).json({ error: 'eventId and token_contract are required' });
+    }
+    const ev = await Event.findOneAndUpdate(
+      { event_id: eventId },
+      { $set: { token_contract } },
+      { new: true }
+    );
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+    return res.json({ event: ev });
+  } catch (err) {
+    console.error('Update event token error:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Create a new Event (optionally deploy ERC20 vault)
 app.post('/api/events', async (req, res) => {
   try {
-    const { admin_id, name, date, location, description, status } = req.body || {};
+    const { admin_id, name, date, location, description, status, token_name, token_symbol } = req.body || {};
     if (!admin_id || !name || !date || !location || !description) {
       return res.status(400).json({ error: 'admin_id, name, date, location, and description are required' });
     }
@@ -106,7 +230,8 @@ app.post('/api/events', async (req, res) => {
     if (!admin) {
       return res.status(404).json({ error: 'Admin not found' });
     }
-    const event = await Event.create({
+    // Base event payload
+    const baseEvent = {
       event_id: uuidv4(),
       admin_id,
       name,
@@ -114,7 +239,27 @@ app.post('/api/events', async (req, res) => {
       location,
       description,
       status: status || 'review',
-    });
+      token_name: token_name || '',
+      token_symbol: token_symbol || '',
+      token_contract: '',
+    };
+
+    // Attempt contract deployment if configuration present
+    const rpcUrl = process.env.RPC_URL;
+    const privKey = process.env.DEPLOYER_PRIVATE_KEY;
+    let deployedAddress = '';
+    
+
+    // Connect to the Ethereum network
+    const provider = new JsonRpcProvider("https://eth-sepolia.g.alchemy.com/v2/kmnge57atpDgxKY1qjgR9");
+    
+    // Get block by number
+    const blockNumber = "latest";
+    const block = await provider.getBlock(blockNumber);
+    
+    console.log(block);
+
+    const event = await Event.create(baseEvent);
     return res.status(201).json({ event });
   } catch (err) {
     console.error('Create event error:', err);
@@ -362,6 +507,7 @@ app.post('/api/users/login', async (req, res) => {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 const PORT = process.env.PORT || 3030;
 app.listen(PORT, () => {

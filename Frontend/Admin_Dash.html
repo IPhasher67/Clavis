@@ -872,10 +872,84 @@
                     <label for="eventDescription">Description</label>
                     <textarea id="eventDescription" rows="3" required></textarea>
                 </div>
+                <div class="form-group">
+                    <label for="tokenName">Token Name</label>
+                    <input type="text" id="tokenName" placeholder="e.g., University Credits" required>
+                </div>
+                <div class="form-group">
+                    <label for="tokenSymbol">Token Symbol</label>
+                    <input type="text" id="tokenSymbol" placeholder="e.g., UCR" maxlength="8" required>
+                </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%;">Submit Event Request</button>
             </form>
         </div>
     </div>
+
+    <script type="module">
+        // Expose a global helper for the button click
+        window.deployTokenForEvent = async function(eventId, admin, tName, tSymbol) {
+            try {
+                // Load artifact (ABI + bytecode) from backend
+                const artResp = await fetch('/api/contracts/university-vault');
+                if (!artResp.ok) { alert('Contract artifact not found'); return; }
+                const artifact = await artResp.json();
+                if (!artifact || !artifact.abi || !artifact.bytecode) { alert('Invalid contract artifact'); return; }
+
+                if (!window.ethereum) {
+                    alert('MetaMask (or another Web3 wallet) is required to deploy the token.');
+                    return;
+                }
+
+                // Import ethers as ES module (does not require eval)
+                const ethersMod = await import('https://cdn.jsdelivr.net/npm/ethers@6.15.0/dist/ethers.min.js');
+                const { BrowserProvider, ContractFactory, isAddress } = ethersMod;
+
+                const provider = new BrowserProvider(window.ethereum);
+                await provider.send('eth_requestAccounts', []);
+                const signer = await provider.getSigner();
+                const signerAddr = await signer.getAddress();
+
+                // Determine initial owner
+                let initialOwner = signerAddr;
+                try { if (admin && admin.wallet_id && isAddress(admin.wallet_id)) initialOwner = admin.wallet_id; } catch {}
+
+                // Deploy contract
+                const factory = new ContractFactory(artifact.abi, artifact.bytecode, signer);
+                const contract = await factory.deploy(initialOwner, String(tName), String(tSymbol));
+                await contract.waitForDeployment();
+                const deployedAddr = await contract.getAddress();
+
+                // Save token address to backend
+                const patchResp = await fetch(`/api/events/${encodeURIComponent(eventId)}/token`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token_contract: deployedAddr })
+                });
+                if (!patchResp.ok) {
+                    const err = await patchResp.json().catch(() => ({}));
+                    console.warn('Failed to save token address:', err);
+                }
+
+                // Show success banner
+                const okBanner = document.createElement('div');
+                okBanner.style.position = 'fixed';
+                okBanner.style.bottom = '90px';
+                okBanner.style.right = '20px';
+                okBanner.style.background = '#0b3d33';
+                okBanner.style.border = '1px solid #10b981';
+                okBanner.style.color = 'white';
+                okBanner.style.padding = '12px 16px';
+                okBanner.style.borderRadius = '8px';
+                okBanner.style.boxShadow = '0 10px 30px rgba(0,0,0,.3)';
+                okBanner.textContent = `Token deployed at ${deployedAddr}`;
+                document.body.appendChild(okBanner);
+                setTimeout(() => okBanner.remove(), 10000);
+            } catch (err) {
+                console.warn('Deployment failed:', err);
+                alert('Deployment failed. See console for details.');
+            }
+        }
+    </script>
 
     <script>
         // Authentication & Admin profile wiring
@@ -1187,6 +1261,8 @@
                         location: document.getElementById('eventLocation').value.trim(),
                         description: document.getElementById('eventDescription').value.trim(),
                         status: 'review',
+                        token_name: document.getElementById('tokenName').value.trim(),
+                        token_symbol: document.getElementById('tokenSymbol').value.trim(),
                     };
 
                     const resp = await fetch('/api/events', {
@@ -1212,6 +1288,9 @@
                         location: ev.location,
                         organizer: admin.name,
                     };
+                    // Capture token fields BEFORE resetting the form
+                    const capturedTokenName = document.getElementById('tokenName')?.value?.trim() || '';
+                    const capturedTokenSymbol = document.getElementById('tokenSymbol')?.value?.trim() || '';
                     events.push(newEvent);
                     renderEvents();
 
@@ -1230,9 +1309,28 @@
                     banner.style.padding = '12px 16px';
                     banner.style.borderRadius = '8px';
                     banner.style.boxShadow = '0 10px 30px rgba(0,0,0,.3)';
-                    banner.innerHTML = `Event "${ev.name}" created. <a href="${link}" style="color:#10b981; text-decoration:underline; margin-left:8px;">Open event page</a>`;
+                    let extra = '';
+                    if (capturedTokenName && capturedTokenSymbol) {
+                        const btnId = `deployTokenBtn-${ev.event_id}`;
+                        extra = ` <button id="${btnId}" style="margin-left:12px; background:#10b981; color:#081b12; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">Deploy Token Now</button>`;
+                    }
+                    banner.innerHTML = `Event "${ev.name}" created. <a href="${link}" style="color:#10b981; text-decoration:underline; margin-left:8px;">Open event page</a>${extra}`;
                     document.body.appendChild(banner);
                     setTimeout(() => banner.remove(), 8000);
+
+                    // Wire the Deploy Token button if present
+                    if (capturedTokenName && capturedTokenSymbol) {
+                        const btn = document.getElementById(`deployTokenBtn-${ev.event_id}`);
+                        if (btn) {
+                            btn.addEventListener('click', async () => {
+                                try {
+                                    await deployTokenForEvent(ev.event_id, admin, capturedTokenName, capturedTokenSymbol);
+                                } catch (e) {
+                                    console.warn('Deploy button error:', e);
+                                }
+                            });
+                        }
+                    }
                 } catch (err) {
                     console.error(err);
                     alert('Unexpected error creating event');
