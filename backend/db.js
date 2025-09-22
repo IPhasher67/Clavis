@@ -1,10 +1,12 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
 
-const MONGODB_URI = process.env.connectionString || process.env.MONGODB_URI;
+let MONGODB_URI = process.env.connectionString || process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  console.warn("[DB] No MongoDB connection string found. Set connectionString or MONGODB_URI in .env");
+  // Fallback to local MongoDB for development
+  MONGODB_URI = "mongodb://127.0.0.1:27017/clavis";
+  console.warn("[DB] No MongoDB connection string found in env. Falling back to local mongodb://127.0.0.1:27017/clavis");
 }
 
 // Connect to MongoDB
@@ -181,10 +183,45 @@ EventSchema.index({ admin_id: 1, createdAt: -1 });
 
 const Event = mongoose.models.Event || mongoose.model('Event', EventSchema);
 
+// Program schema (programs created by organizers for an event)
+const ProgramSchema = new mongoose.Schema(
+  {
+    program_id: { type: String, required: true, unique: true, index: true },
+    event_id: { type: String, required: true, index: true },
+    organizer_id: { type: String, required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    price: { type: Number, required: true, min: 0 },
+  },
+  { timestamps: true, toJSON: { virtuals: true, versionKey: false }, toObject: { virtuals: true, versionKey: false } }
+);
+
+ProgramSchema.index({ event_id: 1, name: 1 }, { unique: false });
+
+const Program = mongoose.models.Program || mongoose.model('Program', ProgramSchema);
+
+// Fiat transaction schema (user registers/pays for a program)
+const FiatTxnSchema = new mongoose.Schema(
+  {
+    txn_id: { type: String, required: true, unique: true, index: true },
+    event_id: { type: String, required: true, index: true },
+    user_id: { type: String, required: true, index: true },
+    program_id: { type: String, required: true, index: true },
+    amount: { type: Number, required: true, min: 0 },
+    status: { type: String, enum: ['created', 'approved', 'failed'], default: 'approved' },
+  },
+  { timestamps: true, toJSON: { virtuals: true, versionKey: false }, toObject: { virtuals: true, versionKey: false } }
+);
+
+FiatTxnSchema.index({ event_id: 1, user_id: 1, createdAt: -1 });
+
+const FiatTxn = mongoose.models.FiatTxn || mongoose.model('FiatTxn', FiatTxnSchema);
+
 module.exports = {
   mongoose,
   Admin,
   EventUser,
   Organizer,
   Event,
+  Program,
+  FiatTxn,
 };

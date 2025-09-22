@@ -7,7 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 dotenv.config();
 
 // Initialize database (MongoDB via mongoose)
-const { Admin, EventUser, Event, Organizer } = require('./db');
+const { Admin, EventUser, Event, Organizer, Program, FiatTxn } = require('./db');
 
 const app = express();
 
@@ -21,6 +21,77 @@ app.use(express.static(FRONTEND_DIR));
 // Root should serve index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(FRONTEND_DIR, 'index.html'));
+});
+
+// -------- Admin data endpoints --------
+// List events for a specific admin
+app.get('/api/admin/:adminId/events', async (req, res) => {
+  try {
+    const { adminId } = req.params;
+    if (!adminId) return res.status(400).json({ error: 'adminId is required' });
+    const events = await Event.find({ admin_id: adminId }).sort({ createdAt: -1 });
+    return res.json({ events });
+  } catch (err) {
+    console.error('List admin events error:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// Optional: list events with query filters (e.g., by adminId)
+app.get('/api/events', async (req, res) => {
+  try {
+    const { adminId } = req.query || {};
+    const q = {};
+    if (adminId) q.admin_id = adminId;
+    const events = await Event.find(q).sort({ createdAt: -1 });
+    return res.json({ events });
+  } catch (err) {
+    console.error('List events error:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// -------- Programs (Organizers create programs for an event) --------
+// Create program
+app.post('/api/programs', async (req, res) => {
+  try {
+    const { eventId, organizerId, name, price } = req.body || {};
+    if (!eventId || !organizerId || !name || typeof price !== 'number') {
+      return res.status(400).json({ error: 'eventId, organizerId, name, and numeric price are required' });
+    }
+
+    const ev = await Event.findOne({ event_id: eventId });
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+
+    const org = await Organizer.findOne({ organizer_id: organizerId, event_id: eventId });
+    if (!org) return res.status(404).json({ error: 'Organizer not found for this event' });
+
+    const program = await Program.create({
+      program_id: uuidv4(),
+      event_id: eventId,
+      organizer_id: organizerId,
+      name: String(name).trim(),
+      price: Number(price),
+    });
+
+    return res.status(201).json({ program });
+  } catch (err) {
+    console.error('Create program error:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// List programs for an event
+app.get('/api/programs', async (req, res) => {
+  try {
+    const { eventId } = req.query || {};
+    if (!eventId) return res.status(400).json({ error: 'eventId is required' });
+    const programs = await Program.find({ event_id: eventId }).sort({ createdAt: -1 });
+    return res.json({ programs });
+  } catch (err) {
+    console.error('List programs error:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 // Create a new Event
@@ -47,6 +118,62 @@ app.post('/api/events', async (req, res) => {
     return res.status(201).json({ event });
   } catch (err) {
     console.error('Create event error:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// -------- Fiat Transactions (user registers/pays for a program) --------
+// Create fiat transaction (dummy approval)
+app.post('/api/txns', async (req, res) => {
+  try {
+    const { eventId, userId, programId, paymentMethod } = req.body || {};
+    if (!eventId || !userId || !programId) {
+      return res.status(400).json({ error: 'eventId, userId, and programId are required' });
+    }
+
+    const ev = await Event.findOne({ event_id: eventId });
+    if (!ev) return res.status(404).json({ error: 'Event not found' });
+
+    const user = await EventUser.findOne({ user_id: userId, event_id: eventId });
+    if (!user) return res.status(404).json({ error: 'User not found for this event' });
+
+    const program = await Program.findOne({ program_id: programId, event_id: eventId });
+    if (!program) return res.status(404).json({ error: 'Program not found for this event' });
+
+    // compute amounts from program.price
+    const base = Number(program.price) || 0;
+    const gst = Math.round(base * 0.18 * 100) / 100;
+    const total = Math.round((base + gst) * 100) / 100;
+
+    const txn = await FiatTxn.create({
+      txn_id: uuidv4(),
+      event_id: eventId,
+      user_id: userId,
+      program_id: programId,
+      amount: total,
+      payment_method: paymentMethod || 'PayTM',
+      base_amount: base,
+      gst_amount: gst,
+      total_amount: total,
+      status: 'approved', // since payment interface is dummy for now
+    });
+
+    return res.status(201).json({ txn });
+  } catch (err) {
+    console.error('Create fiat txn error:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// List fiat transactions by event/user
+app.get('/api/txns', async (req, res) => {
+  try {
+    const { eventId, userId } = req.query || {};
+    if (!eventId || !userId) return res.status(400).json({ error: 'eventId and userId are required' });
+    const txns = await FiatTxn.find({ event_id: eventId, user_id: userId }).sort({ createdAt: -1 });
+    return res.json({ txns });
+  } catch (err) {
+    console.error('List fiat txns error:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 });

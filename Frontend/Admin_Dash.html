@@ -913,51 +913,53 @@
             }
         });
 
-        // Sample events data
-        let events = [
-            {
-                id: 1,
-                name: "Annual Tech Conference",
-                date: "2023-10-15",
-                budget: 15000,
-                organizer: "Tech Innovations Inc.",
-                status: "approve",
-                description: "A conference about the latest technology trends and innovations",
-                type: "conference",
-                location: "San Francisco Convention Center",
-                attendees: "1,200"
-            },
-            {
-                id: 2,
-                name: "Product Launch Event",
-                date: "2023-11-05",
-                budget: 8500,
-                organizer: "Sunrise Products",
-                status: "review",
-                description: "Launch event for our new product line",
-                type: "conference",
-                location: "New York City",
-                attendees: "500"
-            },
-            {
-                id: 3,
-                name: "Charity Gala Dinner",
-                date: "2023-12-10",
-                budget: 25000,
-                organizer: "Hope Foundation",
-                status: "deny",
-                description: "Annual charity gala to raise funds for children's education",
-                type: "party",
-                location: "Los Angeles Ballroom",
-                attendees: "300"
+        // Events loaded from backend
+        let events = [];
+
+        // Load events for current admin from backend
+        async function loadEvents() {
+            try {
+                const admin = window.currentAdmin;
+                if (!admin || !admin.admin_id) {
+                    console.warn('No admin session found while loading events');
+                    return;
+                }
+                const resp = await fetch(`/api/admin/${encodeURIComponent(admin.admin_id)}/events`);
+                const data = await resp.json();
+                if (!resp.ok) {
+                    console.error('Events fetch failed', data);
+                    return;
+                }
+                // Map backend event model to UI model
+                events = (data.events || []).map(ev => ({
+                    id: ev.event_id,
+                    name: ev.name,
+                    date: ev.date,
+                    status: ev.status,
+                    description: ev.description,
+                    location: ev.location,
+                    organizer: admin.name,
+                }));
+            } catch (e) {
+                console.error('loadEvents error', e);
             }
-        ];
+        }
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
-            renderEvents();
-            initCharts();
-            setupEventListeners();
+            loadEvents()
+                .then(() => {
+                    renderEvents();
+                    initCharts();
+                    setupEventListeners();
+                })
+                .catch((err) => {
+                    console.error('Failed to load events', err);
+                    // Continue with empty events to keep UI usable
+                    renderEvents();
+                    initCharts();
+                    setupEventListeners();
+                });
         });
 
         // Render events to the DOM

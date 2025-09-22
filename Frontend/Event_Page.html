@@ -823,8 +823,8 @@
 
         <main class="main-content">
             <section class="programs-section">
-                <h2 class="section-title"><i class="fas fa-list-alt"></i> REGISTERED PROGRAMS</h2>
-                <div class="programs-grid">
+                <h2 class="section-title"><i class="fas fa-list-alt"></i>Events</h2>
+                <div class="programs-grid" id="programsGrid">
                     <!-- Program 1 -->
                     <div class="program-card">
                         <div class="program-header">
@@ -1291,19 +1291,80 @@
                     localStorage.removeItem('eventUser');
                     window.location.reload();
                 };
+
+                // Render programs from backend
+                await renderPrograms(eventId);
             } catch (e) {
                 console.error(e);
                 showError('Unexpected error loading event.');
             }
         });
 
+        // Backend-driven programs
+        let currentPurchase = null; // { programId, name, price }
+
+        async function fetchPrograms(eventId) {
+            try {
+                const res = await fetch(`/api/programs?eventId=${encodeURIComponent(eventId)}`);
+                if (!res.ok) return [];
+                const data = await res.json();
+                return data.programs || [];
+            } catch (e) {
+                console.warn('fetchPrograms error', e);
+                return [];
+            }
+        }
+
+        function programCard(p) {
+            const div = document.createElement('div');
+            div.className = 'program-card';
+            div.innerHTML = `
+                <div class="program-header">
+                    <div class="program-logo"><i class="fas fa-chess"></i></div>
+                    <div class="program-header-content"><h3>${p.name}</h3></div>
+                    <div class="rating"><i class="fas fa-star"></i><span>4.8</span></div>
+                </div>
+                <div class="program-info">
+                    <div class="program-details">
+                        <span><i class="far fa-calendar"></i> --</span>
+                        <span><i class="far fa-clock"></i> --</span>
+                    </div>
+                    <p>Program by organizer. Price:</p>
+                    <div class="program-stats">
+                        <div class="stat"><div class="stat-value seats-left">--</div><div class="stat-label">Seats Left</div></div>
+                        <div class="stat"><div class="stat-value price">$${p.price}</div><div class="stat-label">Price</div></div>
+                    </div>
+                    <button class="register-btn">REGISTER NOW</button>
+                </div>`;
+            div.querySelector('.register-btn').addEventListener('click', () => openPurchase({
+                programId: p.program_id,
+                name: p.name,
+                price: Number(p.price)
+            }));
+            return div;
+        }
+
+        async function renderPrograms(eventId) {
+            const grid = document.getElementById('programsGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            const list = await fetchPrograms(eventId);
+            if (!list.length) {
+                grid.innerHTML = '<p>No programs found for this event.</p>';
+                return;
+            }
+            list.forEach(p => grid.appendChild(programCard(p)));
+        }
+
         // Function to open payment modal
-        function openModal(eventName, price) {
+        function openPurchase(sel) {
+            currentPurchase = sel; // { programId, name, price }
             const modal = document.getElementById('paymentModal');
+            const price = Number(sel.price || 0);
             const gst = price * 0.18;
             const total = price + gst;
             
-            document.getElementById('modal-event-name').textContent = eventName;
+            document.getElementById('modal-event-name').textContent = sel.name;
             document.getElementById('modal-price').textContent = '$' + price.toFixed(2);
             document.getElementById('modal-gst').textContent = '$' + gst.toFixed(2);
             document.getElementById('modal-total').textContent = '$' + total.toFixed(2);
@@ -1322,7 +1383,60 @@
             if (event.target === modal) {
                 closeModal();
             }
-        }
+        };
+
+        // Handle PAY NOW -> create fiat txn via backend
+        (function() {
+            const payBtn = document.querySelector('.pay-now-btn');
+            if (!payBtn) {
+                console.warn('Pay Now button not found');
+                return;
+            }
+            payBtn.addEventListener('click', async () => {
+                try {
+                    const params = new URLSearchParams(window.location.search);
+                    const eventId = params.get('event_id');
+                    if (!eventId) return alert('Missing event id');
+                    const raw = localStorage.getItem('eventUser');
+                    if (!raw) return alert('Please login as user to register');
+                    let user = null; try { user = JSON.parse(raw); } catch {}
+                    if (!user || user.event_id !== eventId) return alert('User not in this event');
+                    if (!currentPurchase) return alert('No program selected');
+
+                    // Determine selected payment method label
+                    const selected = document.querySelector('input[name="payment"]:checked');
+                    // Map display text to API enum values
+                    let paymentMethod = 'PayTM';
+                    if (selected) {
+                        const label = selected.parentElement && selected.parentElement.textContent ? selected.parentElement.textContent.trim() : '';
+                        if (/credit/i.test(label)) paymentMethod = 'Credit Card';
+                        else if (/net\s*bank/i.test(label)) paymentMethod = 'Net Banking';
+                        else paymentMethod = 'PayTM';
+                    }
+
+                    const res = await fetch('/api/txns', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            eventId,
+                            userId: user.user_id,
+                            programId: currentPurchase.programId,
+                            paymentMethod
+                        })
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({ error: 'Failed' }));
+                        throw new Error(err.error || 'Failed to create transaction');
+                    }
+                    const { txn } = await res.json();
+                    alert(`Registration successful! Txn: ${txn.txn_id}`);
+                    closeModal();
+                } catch (e) {
+                    console.error(e);
+                    alert('Payment failed');
+                }
+            });
+        })();
 
         // Filter chip functionality - allow only one selection per group
         const filterGroups = document.querySelectorAll('.multi-select');
@@ -1344,11 +1458,15 @@
             // Here you would normally filter the events based on selected filters
         });
 
-        // Logout button functionality
-        document.querySelector('.logout-btn').addEventListener('click', function() {
-            alert('Logging out...');
-            // Here you would normally handle logout
-        });
+        // Logout button functionality (guard if not present)
+        (function() {
+            const logoutEl = document.getElementById('logoutBtn');
+            if (!logoutEl) return;
+            logoutEl.addEventListener('click', function() {
+                alert('Logging out...');
+                // Here you would normally handle logout
+            });
+        })();
 
         // Function to add a new transaction (simulated live updates)
         function addTransaction() {

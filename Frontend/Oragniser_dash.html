@@ -972,6 +972,11 @@
                     <label class="form-label">Description</label>
                     <textarea class="form-control" id="programDescription" rows="3"></textarea>
                 </div>
+
+                <div class="form-group">
+                    <label class="form-label">Price (in USD)</label>
+                    <input type="number" class="form-control" id="programPrice" placeholder="Enter price" min="0" step="0.01" required>
+                </div>
                 
                 <button type="submit" class="btn btn-primary">Create Program</button>
             </form>
@@ -1227,36 +1232,57 @@
             });
         });
 
-        // Program Form Submission
-        programForm.addEventListener('submit', (e) => {
+        // Helper: get eventId and organizerId
+        function getContext() {
+            const params = new URLSearchParams(window.location.search);
+            const eventId = params.get('event_id');
+            let organizerId = null;
+            try {
+                const raw = localStorage.getItem('organizer');
+                organizerId = raw ? JSON.parse(raw).organizer_id : null;
+            } catch(_) {}
+            return { eventId, organizerId };
+        }
+
+        async function fetchPrograms() {
+            const { eventId } = getContext();
+            if (!eventId) return [];
+            const res = await fetch(`/api/programs?eventId=${encodeURIComponent(eventId)}`);
+            if (!res.ok) return [];
+            const data = await res.json();
+            return data.programs || [];
+        }
+
+        async function createProgramAPI(payload) {
+            const res = await fetch('/api/programs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) throw new Error('Failed to create program');
+            return res.json();
+        }
+
+        // Program Form Submission -> backend
+        programForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const name = document.getElementById('programName').value;
-            const date = document.getElementById('programDate').value;
-            const type = document.getElementById('programType').value;
-            const description = document.getElementById('programDescription').value;
-            
-            // Create new program object
-            const newProgram = {
-                id: samplePrograms.length + 1,
-                name,
-                date,
-                type,
-                description,
-                icon: getIconForType(type)
-            };
-            
-            // Add to sample programs
-            samplePrograms.push(newProgram);
-            
-            // Refresh program displays
-            renderPrograms();
-            
-            // Close modal and reset form
-            closeModal(programModal);
-            programForm.reset();
-            
-            alert('Program created successfully!');
+            const { eventId, organizerId } = getContext();
+            if (!eventId || !organizerId) return alert('Missing event/organizer context');
+
+            const name = document.getElementById('programName').value.trim();
+            const price = Number(document.getElementById('programPrice').value || 0);
+            if (!name || isNaN(price)) return alert('Please provide a name and a numeric price');
+
+            try {
+                await createProgramAPI({ eventId, organizerId, name, price });
+                alert('Program created successfully!');
+                closeModal(programModal);
+                programForm.reset();
+                renderPrograms();
+            } catch (err) {
+                console.error(err);
+                alert('Failed to create program');
+            }
         });
 
         // File Input Display
@@ -1337,19 +1363,32 @@
             return new Date(dateString).toLocaleDateString(undefined, options);
         }
 
-        function renderPrograms() {
-            // Clear containers
+        async function renderPrograms() {
             programsContainer.innerHTML = '';
             allProgramsContainer.innerHTML = '';
-            
-            // Render programs in dashboard
-            samplePrograms.slice(0, 6).forEach(program => {
-                programsContainer.appendChild(createProgramCard(program));
+            const list = await fetchPrograms();
+            if (!list.length) {
+                programsContainer.innerHTML = '<p>No programs yet.</p>';
+                allProgramsContainer.innerHTML = '<p>No programs yet.</p>';
+                return;
+            }
+            list.slice(0, 6).forEach(p => {
+                programsContainer.appendChild(createProgramCard({
+                    name: p.name,
+                    date: '',
+                    type: 'tech',
+                    description: `Price: $${p.price}`,
+                    icon: getIconForType('tech')
+                }));
             });
-            
-            // Render all programs in programs section
-            samplePrograms.forEach(program => {
-                allProgramsContainer.appendChild(createProgramCard(program));
+            list.forEach(p => {
+                allProgramsContainer.appendChild(createProgramCard({
+                    name: p.name,
+                    date: '',
+                    type: 'tech',
+                    description: `Price: $${p.price}`,
+                    icon: getIconForType('tech')
+                }));
             });
         }
 
