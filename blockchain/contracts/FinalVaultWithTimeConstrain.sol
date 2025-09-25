@@ -29,7 +29,7 @@ contract UniversityTokenVault is ERC20, Ownable, Pausable {
         ERC20(name_, symbol_)
         Ownable(initialOwner)
     {}
-
+//contract
 
     function mintTo(address to, uint256 amount) external onlyOwner {
         require(to != address(0), "Invalid to");
